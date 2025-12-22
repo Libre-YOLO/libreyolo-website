@@ -30,7 +30,7 @@ export default function Footer() {
             </p>
             <div className="flex items-center gap-4 mt-6">
               <a
-                href="https://github.com/libreyolo/libreyolo"
+                href="https://github.com/Libre-YOLO/libreyolo"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-surface-400 hover:text-libre-400 transition-colors"

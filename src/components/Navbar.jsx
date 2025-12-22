@@ -81,7 +81,7 @@ export default function Navbar() {
             {/* Right Side */}
             <div className="hidden md:flex items-center gap-4">
               <a
-                href="https://github.com/libreyolo/libreyolo"
+                href="https://github.com/Libre-YOLO/libreyolo"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3 py-2 text-sm text-surface-300 hover:text-white transition-colors"
@@ -132,7 +132,7 @@ export default function Navbar() {
                 </Link>
               ))}
               <a
-                href="https://github.com/libreyolo/libreyolo"
+                href="https://github.com/Libre-YOLO/libreyolo"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-3 text-sm text-surface-300 hover:text-white"
