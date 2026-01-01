@@ -2,9 +2,9 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { 
-  Scale, Shield, CheckCircle2, XCircle, AlertTriangle, 
-  Building2, Lock, Unlock, FileText, ArrowRight, 
+import {
+  Scale, Shield, CheckCircle2, XCircle, AlertTriangle,
+  Building2, Lock, Unlock, ArrowRight,
   Code2, Box, Server, Globe, Briefcase, HelpCircle
 } from 'lucide-react'
 
@@ -83,78 +83,6 @@ function TLDRSection() {
                   </li>
                 </ul>
               </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  )
-}
-
-function RequirementsSection() {
-  return (
-    <section className="py-12">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-2xl font-bold text-white mb-8">
-            The Only Requirement
-          </h2>
-          
-          <div className="bg-surface-900/50 border border-white/10 rounded-2xl p-8">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="p-3 rounded-xl bg-libre-500/10 flex-shrink-0">
-                <FileText className="w-6 h-6 text-libre-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-white mb-2">Include the License Notice</h3>
-                <p className="text-surface-400">
-                  The MIT license requires you to include the copyright notice and license text 
-                  somewhere in your distribution. This is typically done in one of these ways:
-                </p>
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-3 gap-4 mt-8">
-              <div className="bg-surface-800/50 rounded-xl p-5">
-                <h4 className="text-white font-medium mb-2">Desktop Apps</h4>
-                <p className="text-surface-400 text-sm">
-                  Include in your "About" dialog, "Third-Party Licenses" section, 
-                  or bundled LICENSE file.
-                </p>
-              </div>
-              <div className="bg-surface-800/50 rounded-xl p-5">
-                <h4 className="text-white font-medium mb-2">Web Services</h4>
-                <p className="text-surface-400 text-sm">
-                  Include in your terms of service, a /licenses endpoint, 
-                  or internal documentation.
-                </p>
-              </div>
-              <div className="bg-surface-800/50 rounded-xl p-5">
-                <h4 className="text-white font-medium mb-2">Embedded Systems</h4>
-                <p className="text-surface-400 text-sm">
-                  Include in product documentation, the device's info screen, 
-                  or accompanying materials.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-8 code-block rounded-xl">
-              <div className="px-4 py-3 bg-surface-900/50 border-b border-white/5">
-                <span className="text-surface-500 text-sm font-mono">Example License Attribution</span>
-              </div>
-              <pre className="p-4 text-sm overflow-x-auto">
-                <code className="text-surface-300">{`Libre-YOLO
-Copyright (c) 2024 Libre-YOLO Contributors
-
-Permission is hereby granted, free of charge, to any person 
-obtaining a copy of this software...
-
-[Full MIT License text]`}</code>
-              </pre>
             </div>
           </div>
         </motion.div>
@@ -477,20 +405,15 @@ function CTASection() {
             No licensing calls. No legal reviews. Just code.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/docs"
+            <a
+              href="https://docs.libreyolo.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="btn-primary flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-libre-500 to-libre-600 rounded-xl text-white font-semibold"
             >
               Get Started
               <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="/models"
-              className="flex items-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-all"
-            >
-              <Shield className="w-5 h-5 text-emerald-400" />
-              Browse MIT Weights
-            </Link>
+            </a>
           </div>
         </motion.div>
       </div>
@@ -503,7 +426,6 @@ export default function Commercial() {
     <div className="min-h-screen">
       <HeroSection />
       <TLDRSection />
-      <RequirementsSection />
       <UseCasesSection />
       <WeightsSection />
       <ComparisonSection />

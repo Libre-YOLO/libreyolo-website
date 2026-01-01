@@ -5,10 +5,10 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Github } from 'lucide-react'
+import { Menu, X, Github, ExternalLink } from 'lucide-react'
 
 const navLinks = [
-  { name: 'Docs', path: '/docs' },
+  { name: 'Home', path: '/' },
   { name: 'Models', path: '/models' },
   { name: 'Science', path: '/science' },
   { name: 'Commercial', path: '/commercial' },
@@ -76,6 +76,15 @@ export default function Navbar() {
                   {link.name}
                 </Link>
               ))}
+              <a
+                href="https://docs.libreyolo.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-surface-200 hover:text-white hover:bg-white/5"
+              >
+                Docs
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
 
             {/* Right Side */}
@@ -131,6 +140,15 @@ export default function Navbar() {
                   {link.name}
                 </Link>
               ))}
+              <a
+                href="https://docs.libreyolo.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 px-4 py-3 rounded-lg text-sm font-medium text-surface-200 hover:text-white hover:bg-white/5"
+              >
+                Docs
+                <ExternalLink className="w-3 h-3" />
+              </a>
               <a
                 href="https://github.com/Libre-YOLO/libreyolo"
                 target="_blank"

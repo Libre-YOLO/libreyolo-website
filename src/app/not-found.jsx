@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { Home, ArrowLeft, Search } from 'lucide-react'
+import { Home, Search } from 'lucide-react'
 
 export default function NotFound() {
   return (
@@ -38,13 +38,15 @@ export default function NotFound() {
             <Home className="w-5 h-5" />
             Go Home
           </Link>
-          <Link
-            href="/docs"
+          <a
+            href="https://docs.libreyolo.com"
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-all"
           >
             <Search className="w-5 h-5" />
             Browse Docs
-          </Link>
+          </a>
         </div>
 
         <div className="mt-12 code-block rounded-xl max-w-sm mx-auto">

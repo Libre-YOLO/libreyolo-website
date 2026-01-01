@@ -1,202 +1,154 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import Link from 'next/link'
-import { 
-  Download, Shield, AlertTriangle, 
-  CheckCircle2, Info, Scale
+import {
+  Download, Layers, ExternalLink, Gauge, HardDrive
 } from 'lucide-react'
 
-const models = [
+const architectures = [
   {
-    name: 'YOLOv11n',
-    variant: 'Nano',
-    params: '2.6M',
-    mapVal: '39.5',
-    speed: '1.5ms',
-    status: 'mit',
-    description: 'Ultra-lightweight for edge deployment',
-    download: '#',
+    id: 'libreyolox',
+    name: 'LibreYOLOX',
+    description: 'Based on the YOLOX architecture from Megvii.',
+    color: 'libre',
+    hfPrefix: 'yolox_',
+    models: [
+      { size: 'nano', name: 'Nano', params: '0.9M', description: 'Ultra-lightweight', speed: 'Fastest', file: 'libreyolox_nano.pt' },
+      { size: 'tiny', name: 'Tiny', params: '5.1M', description: 'Embedded systems', speed: 'Fast', file: 'libreyolox_tiny.pt' },
+      { size: 's', name: 'Small', params: '9.0M', description: 'Mobile & edge', speed: 'Fast', file: 'libreyolox_s.pt' },
+      { size: 'm', name: 'Medium', params: '25.3M', description: 'General purpose', speed: 'Medium', file: 'libreyolox_m.pt' },
+      { size: 'l', name: 'Large', params: '54.2M', description: 'High accuracy', speed: 'Slower', file: 'libreyolox_l.pt' },
+    ]
   },
   {
-    name: 'YOLOv11s',
-    variant: 'Small',
-    params: '9.4M',
-    mapVal: '47.0',
-    speed: '2.5ms',
-    status: 'mit',
-    description: 'Balanced performance and accuracy',
-    download: '#',
+    id: 'libreyolo8',
+    name: 'LibreYOLO8',
+    description: 'Based on the YOLOv8 architecture from Ultralytics.',
+    color: 'cyan',
+    hfPrefix: 'yolov8',
+    models: [
+      { size: 'n', name: 'Nano', params: '3.2M', description: 'Edge & mobile deployment', speed: 'Fastest', file: 'libreyolo8n.pt' },
+      { size: 's', name: 'Small', params: '11.2M', description: 'Balanced performance', speed: 'Fast', file: 'libreyolo8s.pt' },
+      { size: 'm', name: 'Medium', params: '25.9M', description: 'Production workhorse', speed: 'Medium', file: 'libreyolo8m.pt' },
+      { size: 'l', name: 'Large', params: '43.7M', description: 'High accuracy needs', speed: 'Slower', file: 'libreyolo8l.pt' },
+      { size: 'x', name: 'X-Large', params: '68.2M', description: 'Maximum accuracy', speed: 'Slowest', file: 'libreyolo8x.pt' },
+    ]
   },
   {
-    name: 'YOLOv11m',
-    variant: 'Medium',
-    params: '20.1M',
-    mapVal: '51.5',
-    speed: '4.7ms',
-    status: 'mit',
-    description: 'Production workhorse',
-    download: '#',
-  },
-  {
-    name: 'YOLOv11l',
-    variant: 'Large',
-    params: '25.3M',
-    mapVal: '53.4',
-    speed: '6.2ms',
-    status: 'converted',
-    description: 'High accuracy applications',
-    download: '#',
-  },
-  {
-    name: 'YOLOv11x',
-    variant: 'Extra Large',
-    params: '56.9M',
-    mapVal: '54.7',
-    speed: '11.3ms',
-    status: 'converted',
-    description: 'Maximum accuracy',
-    download: '#',
-  },
-  {
-    name: 'YOLOv8n',
-    variant: 'Nano',
-    params: '3.2M',
-    mapVal: '37.3',
-    speed: '1.8ms',
-    status: 'mit',
-    description: 'v8 architecture, edge-optimized',
-    download: '#',
-  },
-  {
-    name: 'YOLOv8s',
-    variant: 'Small',
-    params: '11.2M',
-    mapVal: '44.9',
-    speed: '3.1ms',
-    status: 'mit',
-    description: 'v8 architecture, balanced',
-    download: '#',
-  },
-  {
-    name: 'YOLOv8m',
-    variant: 'Medium',
-    params: '25.9M',
-    mapVal: '50.2',
-    speed: '5.8ms',
-    status: 'converted',
-    description: 'v8 architecture, high performance',
-    download: '#',
-  },
+    id: 'libreyolo11',
+    name: 'LibreYOLO11',
+    description: 'Based on the YOLOv11 architecture from Ultralytics.',
+    color: 'emerald',
+    hfPrefix: 'yolov11',
+    models: [
+      { size: 'n', name: 'Nano', params: '2.6M', description: 'Edge & mobile deployment', speed: 'Fastest', file: 'libreyolo11n.pt' },
+      { size: 's', name: 'Small', params: '9.4M', description: 'Balanced performance', speed: 'Fast', file: 'libreyolo11s.pt' },
+      { size: 'm', name: 'Medium', params: '20.1M', description: 'Production workhorse', speed: 'Medium', file: 'libreyolo11m.pt' },
+      { size: 'l', name: 'Large', params: '25.3M', description: 'High accuracy needs', speed: 'Slower', file: 'libreyolo11l.pt' },
+      { size: 'x', name: 'X-Large', params: '56.9M', description: 'Maximum accuracy', speed: 'Slowest', file: 'libreyolo11x.pt' },
+    ]
+  }
 ]
 
-function StatusBadge({ status }) {
-  if (status === 'mit') {
-    return (
-      <span className="badge-mit px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5">
-        <Shield className="w-3 h-3" />
-        MIT Weights
-      </span>
-    )
+const colorClasses = {
+  libre: {
+    bg: 'bg-libre-500/10',
+    border: 'border-libre-500/20',
+    text: 'text-libre-400',
+    badge: 'bg-libre-500/20 text-libre-300'
+  },
+  cyan: {
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500/20',
+    text: 'text-cyan-400',
+    badge: 'bg-cyan-500/20 text-cyan-300'
+  },
+  emerald: {
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+    text: 'text-emerald-400',
+    badge: 'bg-emerald-500/20 text-emerald-300'
   }
-  return (
-    <span className="badge-warning px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1.5">
-      <AlertTriangle className="w-3 h-3" />
-      Converted Weights
-    </span>
-  )
 }
 
-function LicenseInfoCard() {
+function ArchitectureCard({ architecture, index }) {
+  const colors = colorClasses[architecture.color]
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="bg-surface-900/50 border border-libre-500/20 rounded-2xl p-6 mb-12"
+      transition={{ delay: index * 0.15 }}
+      className="mb-16"
     >
-      <div className="flex items-start gap-4">
-        <div className="p-3 rounded-xl bg-libre-500/10">
-          <Info className="w-6 h-6 text-libre-400" />
+      {/* Architecture Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+        <div className={`p-3 rounded-xl ${colors.bg} w-fit`}>
+          <Layers className={`w-6 h-6 ${colors.text}`} />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-white mb-2">Understanding Weight Licenses</h3>
-          <p className="text-surface-400 mb-4">
-            The Libre-YOLO <strong className="text-white">engine</strong> is always MIT-licensed. 
-            However, pre-trained weights may have different origins:
-          </p>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="flex items-start gap-3">
-              <span className="badge-mit px-2 py-0.5 rounded text-xs font-semibold mt-1">MIT Weights</span>
-              <p className="text-sm text-surface-400">
-                Trained from scratch using MIT-licensed code and public datasets. 
-                <span className="text-emerald-400"> Safe for any commercial use.</span>
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <span className="badge-warning px-2 py-0.5 rounded text-xs font-semibold mt-1">Converted</span>
-              <p className="text-sm text-surface-400">
-                Converted from other implementations. Original training may involve AGPL code. 
-                <span className="text-yellow-400"> Review your use case.</span>
-              </p>
-            </div>
-          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-1">{architecture.name}</h2>
+          <p className="text-surface-400">{architecture.description}</p>
         </div>
+      </div>
+
+      {/* Models Grid */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+        {architecture.models.map((model, modelIndex) => (
+          <motion.div
+            key={model.size}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: index * 0.15 + modelIndex * 0.05 }}
+            className={`card-hover bg-surface-900/50 border ${colors.border} rounded-xl p-5`}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <h3 className="text-lg font-semibold text-white font-mono">
+                  {model.file.replace('.pt', '')}
+                </h3>
+                <p className="text-surface-500 text-sm">{model.name}</p>
+              </div>
+            </div>
+
+            <p className="text-surface-400 text-sm mb-4">{model.description}</p>
+
+            <div className="space-y-2 mb-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-surface-500 flex items-center gap-1.5">
+                  <HardDrive className="w-3.5 h-3.5" />
+                  Params
+                </span>
+                <span className="text-white font-mono">{model.params}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-surface-500 flex items-center gap-1.5">
+                  <Gauge className="w-3.5 h-3.5" />
+                  Speed
+                </span>
+                <span className={colors.text}>{model.speed}</span>
+              </div>
+            </div>
+
+            <a
+              href={`https://huggingface.co/Libre-YOLO/${architecture.hfPrefix}${model.size}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium text-white transition-all"
+            >
+              <Download className="w-4 h-4" />
+              Download
+            </a>
+          </motion.div>
+        ))}
       </div>
     </motion.div>
   )
 }
 
-function ModelCard({ model, index }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="card-hover bg-surface-900/50 border border-white/5 rounded-xl overflow-hidden"
-    >
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-white">{model.name}</h3>
-            <p className="text-surface-500 text-sm">{model.variant}</p>
-          </div>
-          <StatusBadge status={model.status} />
-        </div>
-        
-        <p className="text-surface-400 text-sm mb-4">{model.description}</p>
-        
-        <div className="grid grid-cols-3 gap-4 mb-4">
-          <div>
-            <p className="text-surface-500 text-xs mb-1">Params</p>
-            <p className="text-white font-mono text-sm">{model.params}</p>
-          </div>
-          <div>
-            <p className="text-surface-500 text-xs mb-1">mAP@50-95</p>
-            <p className="text-libre-400 font-mono text-sm">{model.mapVal}</p>
-          </div>
-          <div>
-            <p className="text-surface-500 text-xs mb-1">Speed (T4)</p>
-            <p className="text-emerald-400 font-mono text-sm">{model.speed}</p>
-          </div>
-        </div>
 
-        <a
-          href={model.download}
-          className="flex items-center justify-center gap-2 w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm font-medium text-white transition-all"
-        >
-          <Download className="w-4 h-4" />
-          Download
-        </a>
-      </div>
-    </motion.div>
-  )
-}
 
 export default function Models() {
-  const mitModels = models.filter(m => m.status === 'mit')
-  const convertedModels = models.filter(m => m.status === 'converted')
-
   return (
     <div className="min-h-screen pt-24 lg:pt-32 pb-16">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -209,99 +161,60 @@ export default function Models() {
           <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
             Model <span className="text-libre-400">Zoo</span>
           </h1>
-          <p className="text-lg text-surface-400 max-w-2xl mx-auto">
-            Pre-trained weights for various YOLO architectures. 
-            Check the license badge before integrating into commercial products.
+          <p className="text-lg text-surface-400 max-w-2xl mx-auto mb-6">
+            Pre-trained weights for LibreYOLOX, LibreYOLO8, and LibreYOLO11 architectures.
+            All models trained on COCO dataset with 80 object classes.
           </p>
+          <a
+            href="https://huggingface.co/Libre-YOLO"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-libre-400 hover:text-libre-300 transition-colors"
+          >
+            View all on HuggingFace
+            <ExternalLink className="w-4 h-4" />
+          </a>
         </motion.div>
-
-        {/* License Info */}
-        <LicenseInfoCard />
 
         {/* Stats Bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12"
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-3 gap-4 mb-12 max-w-2xl mx-auto"
         >
           <div className="bg-surface-900/50 border border-white/5 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-white">{models.length}</p>
-            <p className="text-surface-500 text-sm">Total Models</p>
-          </div>
-          <div className="bg-surface-900/50 border border-emerald-500/20 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-emerald-400">{mitModels.length}</p>
-            <p className="text-surface-500 text-sm">MIT Weights</p>
+            <p className="text-2xl font-bold text-white">15</p>
+            <p className="text-surface-500 text-sm">Models</p>
           </div>
           <div className="bg-surface-900/50 border border-white/5 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-white">2</p>
+            <p className="text-2xl font-bold text-libre-400">3</p>
             <p className="text-surface-500 text-sm">Architectures</p>
           </div>
           <div className="bg-surface-900/50 border border-white/5 rounded-xl p-4 text-center">
-            <p className="text-2xl font-bold text-libre-400">COCO</p>
-            <p className="text-surface-500 text-sm">Dataset</p>
+            <p className="text-2xl font-bold text-white">PyTorch</p>
+            <p className="text-surface-500 text-sm">Framework</p>
           </div>
         </motion.div>
 
-        {/* MIT Models Section */}
-        <div className="mb-16">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-emerald-500/10">
-              <Shield className="w-5 h-5 text-emerald-400" />
-            </div>
-            <h2 className="text-2xl font-semibold text-white">MIT Licensed Weights</h2>
-            <span className="badge-mit px-2 py-0.5 rounded text-xs font-semibold">COMMERCIAL SAFE</span>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {mitModels.map((model, index) => (
-              <ModelCard key={model.name} model={model} index={index} />
-            ))}
-          </div>
-        </div>
+        {/* Architecture Cards */}
+        {architectures.map((arch, index) => (
+          <ArchitectureCard key={arch.id} architecture={arch} index={index} />
+        ))}
 
-        {/* Converted Models Section */}
-        <div>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-lg bg-yellow-500/10">
-              <AlertTriangle className="w-5 h-5 text-yellow-400" />
-            </div>
-            <h2 className="text-2xl font-semibold text-white">Converted Weights</h2>
-            <span className="badge-warning px-2 py-0.5 rounded text-xs font-semibold">REVIEW REQUIRED</span>
-          </div>
-          <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-xl p-4 mb-6">
-            <p className="text-surface-400 text-sm">
-              <strong className="text-yellow-400">Note:</strong> These weights were converted from other implementations.
-              While the Libre-YOLO engine is MIT-licensed, the original training pipeline may have involved AGPL-licensed code.
-              Consult your legal team for commercial deployments using these weights.
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {convertedModels.map((model, index) => (
-              <ModelCard key={model.name} model={model} index={mitModels.length + index} />
-            ))}
-          </div>
-        </div>
 
-        {/* CTA */}
+        {/* Note about weights */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-16 text-center"
+          className="text-center text-surface-500 text-sm"
         >
-          <p className="text-surface-400 mb-4">
-            Need help choosing the right model for your use case?
+          <p>
+            Note: Pre-trained weights may inherit licensing terms from their original training source.
           </p>
-          <Link
-            href="/commercial"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-libre-500/10 hover:bg-libre-500/20 border border-libre-500/30 rounded-xl text-libre-400 font-medium transition-all"
-          >
-            <Scale className="w-4 h-4" />
-            Read the Commercial Guide
-          </Link>
         </motion.div>
       </div>
     </div>
   )
 }
-

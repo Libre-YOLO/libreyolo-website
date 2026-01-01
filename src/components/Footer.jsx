@@ -25,8 +25,8 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-surface-400 text-sm leading-relaxed max-w-md">
-              An independent open-source project providing MIT-licensed object detection 
-              capabilities. Built for developers who need legal clarity.
+              An independent open-source project providing state-of-the-art object detection.
+              Built for developers, researchers, and commercial applications.
             </p>
             <div className="flex items-center gap-4 mt-6">
               <a
@@ -46,9 +46,9 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-4">Resources</h4>
             <ul className="space-y-3">
               <li>
-                <Link href="/docs" className="text-surface-400 hover:text-libre-400 text-sm transition-colors">
+                <a href="https://docs.libreyolo.com" target="_blank" rel="noopener noreferrer" className="text-surface-400 hover:text-libre-400 text-sm transition-colors">
                   Documentation
-                </Link>
+                </a>
               </li>
               <li>
                 <Link href="/models" className="text-surface-400 hover:text-libre-400 text-sm transition-colors">
@@ -81,23 +81,14 @@ export default function Footer() {
                   MIT License <ExternalLink className="w-3 h-3" />
                 </a>
               </li>
-              <li>
-                <span className="text-surface-500 text-sm">
-                  No AGPL dependencies
-                </span>
-              </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-surface-500 text-sm">
+        <div className="mt-12 pt-8 border-t border-white/5">
+          <p className="text-surface-500 text-sm text-center md:text-left">
             © {new Date().getFullYear()} Libre-YOLO. An independent open-source project.
           </p>
-          <div className="badge-mit px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            Safe for Commercial Use
-          </div>
         </div>
       </div>
     </footer>

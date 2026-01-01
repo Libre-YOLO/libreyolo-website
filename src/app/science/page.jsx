@@ -1,20 +1,17 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import Link from 'next/link'
-import { 
-  FlaskConical, Eye, Layers, FileCode2, FolderOpen, 
-  Microscope, Brain, Sparkles, CheckCircle2, XCircle,
-  Lock, Unlock, ArrowRight, Code2, BookOpen, Cpu,
-  GitBranch, Zap, Download, Scale
+import {
+  FlaskConical, Eye, Layers, Brain, CheckCircle2, XCircle,
+  Lock, Unlock, ArrowRight, Zap, Copy, Check, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { useState } from 'react'
 
-function CopyButton({ text }) {
+function CopyButton({ code }) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(text)
+    await navigator.clipboard.writeText(code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -26,33 +23,79 @@ function CopyButton({ text }) {
       title="Copy to clipboard"
     >
       {copied ? (
-        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <Check className="w-4 h-4 text-emerald-400" />
       ) : (
-        <Code2 className="w-4 h-4 text-surface-400" />
+        <Copy className="w-4 h-4 text-surface-400" />
       )}
     </button>
   )
 }
 
-function CodeBlock({ code, filename }) {
+function ImageCarousel({ images, accentColor = 'cyan' }) {
+  const [activeIndex, setActiveIndex] = useState(0)
+
+  const colorClasses = {
+    cyan: { border: 'border-cyan-500/20', dot: 'bg-cyan-400', activeBg: 'bg-cyan-500/20', activeText: 'text-cyan-400', hoverBg: 'hover:bg-cyan-500/20', glow: 'from-cyan-500/30 via-emerald-500/30 to-cyan-500/30' },
+    fuchsia: { border: 'border-fuchsia-500/20', dot: 'bg-fuchsia-400', activeBg: 'bg-fuchsia-500/20', activeText: 'text-fuchsia-400', hoverBg: 'hover:bg-fuchsia-500/20', glow: 'from-fuchsia-500/30 via-violet-500/30 to-fuchsia-500/30' }
+  }
+  const colors = colorClasses[accentColor]
+
+  const goToPrev = () => setActiveIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))
+  const goToNext = () => setActiveIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
+
   return (
-    <div className="code-block rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-surface-900/50 border-b border-white/5">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-2">
-            <span className="w-3 h-3 rounded-full bg-red-500/80" />
-            <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-            <span className="w-3 h-3 rounded-full bg-green-500/80" />
+    <div className="relative lg:max-w-sm w-full">
+      <div className={`absolute -inset-1 bg-gradient-to-r ${colors.glow} rounded-2xl lg:rounded-l-none blur-xl opacity-30`} />
+      <div className={`relative bg-surface-900/80 backdrop-blur-sm border ${colors.border} rounded-2xl lg:rounded-l-none overflow-hidden h-full flex flex-col`}>
+        <div className="flex items-center justify-between px-4 py-3 bg-surface-900/50 border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${colors.dot} animate-pulse`} />
+            <span className="text-surface-500 text-sm font-mono">{images[activeIndex].filename}</span>
           </div>
-          {filename && (
-            <span className="ml-4 text-surface-500 text-sm font-mono">{filename}</span>
-          )}
+          {/* Prev/Next buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={goToPrev}
+              className={`p-1.5 rounded-lg bg-white/5 ${colors.hoverBg} transition-colors`}
+              aria-label="Previous"
+            >
+              <ChevronLeft className={`w-4 h-4 ${colors.activeText}`} />
+            </button>
+            <span className="text-surface-500 text-xs font-mono px-2">{activeIndex + 1}/{images.length}</span>
+            <button
+              onClick={goToNext}
+              className={`p-1.5 rounded-lg bg-white/5 ${colors.hoverBg} transition-colors`}
+              aria-label="Next"
+            >
+              <ChevronRight className={`w-4 h-4 ${colors.activeText}`} />
+            </button>
+          </div>
         </div>
-        <CopyButton text={code} />
+
+        <div className="p-3 flex-1 flex flex-col">
+          <img
+            src={images[activeIndex].src}
+            alt={images[activeIndex].alt}
+            className="rounded-lg w-full"
+          />
+          {/* Layer/Method selector */}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => setActiveIndex(idx)}
+                className={`px-2 py-1 rounded-md text-xs font-medium transition-all ${
+                  activeIndex === idx
+                    ? `${colors.activeBg} ${colors.activeText}`
+                    : 'bg-white/5 text-surface-400 hover:bg-white/10'
+                }`}
+              >
+                {img.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
-      <pre className="p-4 overflow-x-auto">
-        <code className="font-mono text-sm">{code}</code>
-      </pre>
     </div>
   )
 }
@@ -167,54 +210,6 @@ function NoPaywallSection() {
 }
 
 function ExplainabilitySection() {
-  const featureMapCode = `from libreyolo import LIBREYOLO
-
-model = LIBREYOLO("yolov11m.pt")
-
-# One flag to save all feature maps
-results = model.predict(
-    "image.jpg",
-    save_feature_maps=True  # That's it!
-)
-
-# Feature maps saved to runs/detect/exp/feature_maps/
-# Organized by layer: backbone/, neck/, head/`
-
-  const gradcamCode = `from libreyolo import LIBREYOLO
-from libreyolo.explain import GradCAM, SaliencyMap, SHAP
-
-model = LIBREYOLO("yolov11m.pt")
-
-# GradCAM visualization
-gradcam = GradCAM(model, target_layer="backbone.layer4")
-heatmap = gradcam.generate("image.jpg", class_idx=0)
-gradcam.visualize(heatmap, save="gradcam_person.png")
-
-# Saliency maps
-saliency = SaliencyMap(model)
-saliency.compute("image.jpg", save="saliency.png")
-
-# SHAP explanations
-shap_explainer = SHAP(model)
-shap_explainer.explain("image.jpg", save="shap_values.png")`
-
-  const attentionCode = `from libreyolo import LIBREYOLO
-
-model = LIBREYOLO("yolov11m.pt")
-
-# Extract attention weights (for transformer-based models)
-results = model.predict(
-    "image.jpg",
-    extract_attention=True
-)
-
-# Access attention maps per head
-for layer, attn in results[0].attention_maps.items():
-    print(f"{layer}: {attn.shape}")  # [heads, H, W]
-    
-# Built-in visualization
-results[0].plot_attention_heads(save="attention_heads.png")`
-
   return (
     <section className="py-16">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -232,8 +227,8 @@ results[0].plot_attention_heads(save="attention_heads.png")`
             See Inside the Black Box
           </h2>
           <p className="text-lg text-surface-400 max-w-2xl mx-auto">
-            Built-in tools for interpretability and explainability. No external dependencies, 
-            no complex setup—just flags and function calls.
+            Built-in tools for interpretability and explainability. No external dependencies,
+            no complex setup - just flags and function calls.
           </p>
         </motion.div>
 
@@ -243,280 +238,167 @@ results[0].plot_attention_heads(save="attention_heads.png")`
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="grid lg:grid-cols-2 gap-8 items-start"
           >
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-cyan-500/10">
-                  <Layers className="w-5 h-5 text-cyan-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-white">Feature Map Extraction</h3>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-cyan-500/10">
+                <Layers className="w-5 h-5 text-cyan-400" />
               </div>
-              <p className="text-surface-400 mb-4">
-                One flag. That's all it takes to save intermediate activations from every layer. 
-                Perfect for understanding what your model "sees" at each stage.
-              </p>
-              <ul className="space-y-2 text-sm text-surface-400">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Backbone, neck, and head layers
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Automatic organization by layer type
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  NumPy arrays for easy analysis
-                </li>
-              </ul>
+              <h3 className="text-xl font-semibold text-white">Feature Map Extraction</h3>
             </div>
-            <CodeBlock code={featureMapCode} filename="feature_maps.py" />
+            <p className="text-surface-400 mb-6 max-w-2xl">
+              One flag. That's all it takes to save intermediate activations from every layer.
+              Perfect for understanding what your model "sees" at each stage.
+            </p>
+
+            <div className="flex flex-col lg:flex-row items-stretch gap-0 max-w-5xl mx-auto">
+              {/* Code Block */}
+              <div className="relative flex-1 w-full">
+                <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/50 via-emerald-500/50 to-cyan-500/50 rounded-2xl lg:rounded-r-none blur-xl opacity-30" />
+                <div className="relative code-block rounded-2xl lg:rounded-r-none overflow-hidden h-full">
+                  <div className="flex items-center justify-between px-4 py-3 bg-surface-900/50 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-2">
+                        <span className="w-3 h-3 rounded-full bg-red-500/80" />
+                        <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                        <span className="w-3 h-3 rounded-full bg-green-500/80" />
+                      </div>
+                      <span className="ml-4 text-surface-500 text-sm font-mono">feature_maps.py</span>
+                    </div>
+                    <CopyButton code={`from libreyolo import LIBREYOLO
+
+# Enable feature map saving in constructor
+model = LIBREYOLO(
+    model_path="libreyolo11m.pt",
+    size="m",
+    save_feature_maps=True
+)
+
+# Run inference - feature maps auto-saved
+results = model(image="parkour.jpg")
+
+# Saved to: runs/feature_maps/`} />
+                  </div>
+                  <pre className="p-6 overflow-x-auto">
+                    <code className="font-mono text-sm">
+                      <span className="token-keyword">from</span> <span className="text-violet-300">libreyolo</span> <span className="token-keyword">import</span> <span className="text-emerald-400">LIBREYOLO</span>{'\n\n'}
+                      <span className="token-comment"># Enable feature map saving in constructor</span>{'\n'}
+                      <span className="text-surface-300">model</span> <span className="text-violet-400">=</span> <span className="text-emerald-400">LIBREYOLO</span>({'\n'}
+                      {'    '}<span className="text-surface-300">model_path</span><span className="text-violet-400">=</span><span className="token-string">"libreyolo11m.pt"</span>,{'\n'}
+                      {'    '}<span className="text-surface-300">size</span><span className="text-violet-400">=</span><span className="token-string">"m"</span>,{'\n'}
+                      {'    '}<span className="text-surface-300">save_feature_maps</span><span className="text-violet-400">=</span><span className="text-emerald-400">True</span>{'\n'}
+                      ){'\n\n'}
+                      <span className="token-comment"># Run inference - feature maps auto-saved</span>{'\n'}
+                      <span className="text-surface-300">results</span> <span className="text-violet-400">=</span> <span className="text-surface-300">model</span>(<span className="text-surface-300">image</span><span className="text-violet-400">=</span><span className="token-string">"parkour.jpg"</span>){'\n\n'}
+                      <span className="token-comment"># Saved to: runs/feature_maps/</span>
+                    </code>
+                  </pre>
+                </div>
+              </div>
+
+              {/* Arrow connector */}
+              <div className="hidden lg:flex items-center justify-center relative z-10">
+                <div className="w-12 h-12 rounded-full bg-surface-900 border border-cyan-500/30 flex items-center justify-center -mx-6">
+                  <ArrowRight className="w-5 h-5 text-cyan-400" />
+                </div>
+              </div>
+
+              {/* Feature Map Output Carousel */}
+              <ImageCarousel
+                accentColor="cyan"
+                images={[
+                  { label: 'P1', filename: 'backbone_p1.png', src: '/feature_maps/backbone_p1.png', alt: 'Backbone P1 feature map' },
+                  { label: 'P2', filename: 'backbone_p2.png', src: '/feature_maps/backbone_p2.png', alt: 'Backbone P2 feature map' },
+                  { label: 'P3', filename: 'backbone_p3.png', src: '/feature_maps/backbone_p3.png', alt: 'Backbone P3 feature map' },
+                  { label: 'P4', filename: 'backbone_p4.png', src: '/feature_maps/backbone_p4.png', alt: 'Backbone P4 feature map' },
+                  { label: 'P5', filename: 'backbone_p5.png', src: '/feature_maps/backbone_p5.png', alt: 'Backbone P5 feature map' },
+                  { label: 'SPPF', filename: 'backbone_sppf_P5.png', src: '/feature_maps/backbone_sppf_P5.png', alt: 'SPPF feature map' },
+                  { label: 'Neck 1', filename: 'neck_c2f11.png', src: '/feature_maps/neck_c2f11.png', alt: 'Neck C2F11 feature map' },
+                  { label: 'Neck 2', filename: 'neck_c2f22.png', src: '/feature_maps/neck_c2f22.png', alt: 'Neck C2F22 feature map' },
+                  { label: 'Head 8', filename: 'head8_conv21.png', src: '/feature_maps/head8_conv21.png', alt: 'Head 8 feature map' },
+                  { label: 'Head 16', filename: 'head16_conv21.png', src: '/feature_maps/head16_conv21.png', alt: 'Head 16 feature map' },
+                  { label: 'Head 32', filename: 'head32_conv21.png', src: '/feature_maps/head32_conv21.png', alt: 'Head 32 feature map' },
+                ]}
+              />
+            </div>
           </motion.div>
 
-          {/* GradCAM & Saliency */}
+          {/* CAM Visualizations */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="grid lg:grid-cols-2 gap-8 items-start"
           >
-            <div className="lg:order-2">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-fuchsia-500/10">
-                  <Brain className="w-5 h-5 text-fuchsia-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-white">Explainability Toolbox</h3>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-fuchsia-500/10">
+                <Brain className="w-5 h-5 text-fuchsia-400" />
               </div>
-              <p className="text-surface-400 mb-4">
-                Native implementations of GradCAM, saliency maps, and SHAP explanations. 
-                No pip installing extra packages or fighting version conflicts.
-              </p>
-              <div className="grid grid-cols-3 gap-3 mt-6">
-                <div className="bg-surface-900/50 border border-white/5 rounded-lg p-3 text-center">
-                  <span className="text-white font-medium text-sm">GradCAM</span>
-                </div>
-                <div className="bg-surface-900/50 border border-white/5 rounded-lg p-3 text-center">
-                  <span className="text-white font-medium text-sm">Saliency</span>
-                </div>
-                <div className="bg-surface-900/50 border border-white/5 rounded-lg p-3 text-center">
-                  <span className="text-white font-medium text-sm">SHAP</span>
-                </div>
-                <div className="bg-surface-900/50 border border-white/5 rounded-lg p-3 text-center">
-                  <span className="text-white font-medium text-sm">CAM</span>
-                </div>
-                <div className="bg-surface-900/50 border border-white/5 rounded-lg p-3 text-center">
-                  <span className="text-white font-medium text-sm">Guided</span>
-                </div>
-                <div className="bg-surface-900/50 border border-white/5 rounded-lg p-3 text-center">
-                  <span className="text-white font-medium text-sm">Occlusion</span>
+              <h3 className="text-xl font-semibold text-white">CAM Visualizations</h3>
+              <span className="px-2 py-1 rounded-md bg-amber-500/20 text-amber-400 text-xs font-medium">
+                Experimental
+              </span>
+            </div>
+            <p className="text-surface-400 mb-6 max-w-2xl">
+              7 built-in Class Activation Map methods. Call <code className="text-fuchsia-400 font-mono text-sm">model.explain()</code> to
+              generate heatmaps showing what your model focuses on. This feature is experimental and results may vary.
+            </p>
+
+            <div className="max-w-2xl">
+              {/* Code Block */}
+              <div className="relative w-full">
+                <div className="absolute -inset-1 bg-gradient-to-r from-fuchsia-500/50 via-violet-500/50 to-fuchsia-500/50 rounded-2xl blur-xl opacity-30" />
+                <div className="relative code-block rounded-2xl overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-surface-900/50 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-2">
+                        <span className="w-3 h-3 rounded-full bg-red-500/80" />
+                        <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                        <span className="w-3 h-3 rounded-full bg-green-500/80" />
+                      </div>
+                      <span className="ml-4 text-surface-500 text-sm font-mono">explainability.py</span>
+                    </div>
+                    <CopyButton code={`from libreyolo import LIBREYOLO
+
+model = LIBREYOLO(model_path="libreyolo11m.pt", size="m")
+
+# One-line CAM visualization
+result = model.explain(
+    image="parkour.jpg",
+    method="gradcam",
+    target_layer="neck_c2f22",
+    save=True
+)
+
+# Returns heatmap and overlay
+print(result["heatmap"].shape)`} />
+                  </div>
+                  <pre className="p-6 overflow-x-auto">
+                    <code className="font-mono text-sm">
+                      <span className="token-keyword">from</span> <span className="text-violet-300">libreyolo</span> <span className="token-keyword">import</span> <span className="text-emerald-400">LIBREYOLO</span>{'\n\n'}
+                      <span className="text-surface-300">model</span> <span className="text-violet-400">=</span> <span className="text-emerald-400">LIBREYOLO</span>(<span className="text-surface-300">model_path</span><span className="text-violet-400">=</span><span className="token-string">"libreyolo11m.pt"</span>, <span className="text-surface-300">size</span><span className="text-violet-400">=</span><span className="token-string">"m"</span>){'\n\n'}
+                      <span className="token-comment"># One-line CAM visualization</span>{'\n'}
+                      <span className="text-surface-300">result</span> <span className="text-violet-400">=</span> <span className="text-surface-300">model</span>.<span className="token-function">explain</span>({'\n'}
+                      {'    '}<span className="text-surface-300">image</span><span className="text-violet-400">=</span><span className="token-string">"parkour.jpg"</span>,{'\n'}
+                      {'    '}<span className="text-surface-300">method</span><span className="text-violet-400">=</span><span className="token-string">"gradcam"</span>,{'\n'}
+                      {'    '}<span className="text-surface-300">target_layer</span><span className="text-violet-400">=</span><span className="token-string">"neck_c2f22"</span>,{'\n'}
+                      {'    '}<span className="text-surface-300">save</span><span className="text-violet-400">=</span><span className="text-emerald-400">True</span>{'\n'}
+                      ){'\n\n'}
+                      <span className="token-comment"># Returns heatmap and overlay</span>{'\n'}
+                      <span className="token-function">print</span>(<span className="text-surface-300">result</span>[<span className="token-string">"heatmap"</span>].<span className="text-surface-300">shape</span>)
+                    </code>
+                  </pre>
                 </div>
               </div>
             </div>
-            <CodeBlock code={gradcamCode} filename="explainability.py" />
           </motion.div>
 
-          {/* Attention Maps */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="grid lg:grid-cols-2 gap-8 items-start"
-          >
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-lg bg-amber-500/10">
-                  <Sparkles className="w-5 h-5 text-amber-400" />
-                </div>
-                <h3 className="text-xl font-semibold text-white">Attention Visualization</h3>
-              </div>
-              <p className="text-surface-400 mb-4">
-                For transformer-based architectures, extract and visualize attention weights 
-                to understand which regions the model attends to.
-              </p>
-              <ul className="space-y-2 text-sm text-surface-400">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Per-head attention maps
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Cross-attention & self-attention
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  Publication-ready visualizations
-                </li>
-              </ul>
-            </div>
-            <CodeBlock code={attentionCode} filename="attention.py" />
-          </motion.div>
         </div>
       </div>
     </section>
   )
 }
 
-function CodeStructureSection() {
-  return (
-    <section className="py-16 bg-surface-900/30">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-12"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm font-medium mb-4">
-            <FolderOpen className="w-4 h-4" />
-            Readable Architecture
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-            One File Per Model
-          </h2>
-          <p className="text-lg text-surface-400 max-w-2xl mx-auto">
-            No more hunting through labyrinthine file structures. Each model architecture 
-            lives in a single, self-contained file.
-          </p>
-        </motion.div>
-
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Typical Structure */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="bg-surface-900/50 border border-red-500/20 rounded-2xl p-6"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-red-500/10">
-                <XCircle className="w-5 h-5 text-red-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">Typical Framework Structure</h3>
-            </div>
-            <div className="code-block rounded-lg overflow-hidden">
-              <pre className="p-4 text-sm overflow-x-auto">
-                <code className="text-surface-400">{`standard_framework/
-├── nn/
-│   ├── modules/
-│   │   ├── block.py      # 500+ lines
-│   │   ├── conv.py       # Where is C2f?
-│   │   ├── head.py       # Multiple classes
-│   │   └── transformer.py
-│   └── tasks.py          # 1000+ lines
-├── models/
-│   ├── yolo/
-│   │   ├── detect/
-│   │   │   ├── train.py
-│   │   │   └── val.py
-│   │   └── model.py
-│   └── ... 
-└── # Good luck finding what you need`}</code>
-              </pre>
-            </div>
-            <p className="mt-4 text-surface-500 text-sm">
-              Fragmented across dozens of files. Imports from everywhere. 
-              Modifying one thing breaks another.
-            </p>
-          </motion.div>
-
-          {/* Libre-YOLO Structure */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="bg-surface-900/50 border border-emerald-500/20 rounded-2xl p-6"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 rounded-lg bg-emerald-500/10">
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white">Libre-YOLO Structure</h3>
-            </div>
-            <div className="code-block rounded-lg overflow-hidden">
-              <pre className="p-4 text-sm overflow-x-auto">
-                <code className="text-surface-400">{`libreyolo/
-├── models/
-│   ├── yolov8.py         # Complete v8 model
-│   ├── yolov11.py        # Complete v11 model
-│   └── yolov12.py        # Complete v12 model
-├── notebooks/
-│   ├── yolov8.ipynb      # Interactive v8
-│   ├── yolov11.ipynb     # Interactive v11
-│   └── explainability.ipynb
-├── explain/
-│   └── toolbox.py        # All XAI methods
-└── # Find anything in seconds`}</code>
-              </pre>
-            </div>
-            <p className="mt-4 text-emerald-400 text-sm">
-              Each model is self-contained. Modify YOLOv11 without touching v8. 
-              Jupyter notebooks for interactive exploration.
-            </p>
-          </motion.div>
-        </div>
-
-        {/* Benefits Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="grid sm:grid-cols-3 gap-4 mt-12"
-        >
-          <div className="bg-surface-900/50 border border-white/5 rounded-xl p-5">
-            <FileCode2 className="w-6 h-6 text-violet-400 mb-3" />
-            <h4 className="text-white font-medium mb-2">Python Files</h4>
-            <p className="text-surface-400 text-sm">
-              One .py file per architecture. Everything you need to understand 
-              or modify in one place.
-            </p>
-          </div>
-          <div className="bg-surface-900/50 border border-white/5 rounded-xl p-5">
-            <BookOpen className="w-6 h-6 text-cyan-400 mb-3" />
-            <h4 className="text-white font-medium mb-2">Jupyter Notebooks</h4>
-            <p className="text-surface-400 text-sm">
-              Interactive notebooks for each model. Run cell-by-cell, 
-              visualize outputs, experiment freely.
-            </p>
-          </div>
-          <div className="bg-surface-900/50 border border-white/5 rounded-xl p-5">
-            <GitBranch className="w-6 h-6 text-emerald-400 mb-3" />
-            <h4 className="text-white font-medium mb-2">Easy to Fork</h4>
-            <p className="text-surface-400 text-sm">
-              Want to create YOLOv11-Custom? Copy one file, modify, done. 
-              No dependency spaghetti.
-            </p>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  )
-}
 
 function ModificationSection() {
-  const customBackboneCode = `# yolov11_custom.py - Your modified architecture
-
-from libreyolo.models.yolov11 import YOLOv11
-
-class YOLOv11Custom(YOLOv11):
-    def __init__(self):
-        super().__init__()
-        # Swap out the backbone
-        self.backbone = MyCustomBackbone()
-        
-    def forward(self, x):
-        # Add your custom logic
-        features = self.backbone(x)
-        
-        # Maybe add a custom attention layer?
-        features = self.custom_attention(features)
-        
-        return self.head(self.neck(features))
-
-# That's it. Train it:
-model = YOLOv11Custom()
-model.train(data="my_dataset.yaml")`
-
   return (
     <section className="py-16">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -531,55 +413,60 @@ model.train(data="my_dataset.yaml")`
             </div>
             <h2 className="text-2xl font-semibold text-white">Designed for Modification</h2>
           </div>
-          
+
           <p className="text-surface-400 mb-8 max-w-3xl">
-            Want to test a new backbone? Experiment with a custom attention mechanism? 
-            Add a novel loss function? The clean architecture makes modifications straightforward.
+            The codebase is written to be easy to read and modify. Want to test a new backbone?
+            Experiment with a custom attention mechanism? Add a novel loss function? Go for it.
           </p>
 
-          <div className="grid lg:grid-cols-2 gap-8 items-start">
-            <div>
-              <h3 className="text-lg font-medium text-white mb-4">Modify Without Fear</h3>
-              <ul className="space-y-4">
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-white font-medium">Isolated Changes</span>
-                    <p className="text-surface-400 text-sm mt-1">
-                      Modify YOLOv11 without affecting YOLOv8. Each model is independent.
-                    </p>
+          <div className="max-w-2xl">
+            {/* Code Block */}
+            <div className="code-block rounded-xl overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-surface-900/50 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-2">
+                    <span className="w-3 h-3 rounded-full bg-red-500/80" />
+                    <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                    <span className="w-3 h-3 rounded-full bg-green-500/80" />
                   </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-white font-medium">Clear Inheritance</span>
-                    <p className="text-surface-400 text-sm mt-1">
-                      Simple class hierarchy. Override what you need, inherit the rest.
-                    </p>
-                  </div>
-                </li>
-                <li className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-white font-medium">No License Barriers</span>
-                    <p className="text-surface-400 text-sm mt-1">
-                      Your modifications stay private. No fees to keep your research confidential.
-                    </p>
-                  </div>
-                </li>
-              </ul>
-              
-              <div className="mt-8 p-4 bg-violet-500/5 border border-violet-500/20 rounded-xl">
-                <p className="text-surface-300 text-sm">
-                  <strong className="text-violet-400">For researchers:</strong> Publish papers 
-                  using modified Libre-YOLO architectures. No "science license" needed. 
-                  Just cite the project and publish freely.
-                </p>
+                  <span className="ml-4 text-surface-500 text-sm font-mono">yolov11_custom.py</span>
+                </div>
+                <CopyButton code={`# Your modified architecture
+
+from libreyolo.models.yolov11 import YOLOv11
+
+class YOLOv11Custom(YOLOv11):
+    def __init__(self):
+        super().__init__()
+        # Swap out the backbone
+        self.backbone = MyCustomBackbone()
+
+    def forward(self, x):
+        features = self.backbone(x)
+        return self.head(self.neck(features))
+
+# Train it:
+model = YOLOv11Custom()
+model.train(data="my_dataset.yaml")`} />
               </div>
+              <pre className="p-5 overflow-x-auto">
+                <code className="font-mono text-sm">
+                  <span className="token-comment"># Your modified architecture</span>{'\n\n'}
+                  <span className="token-keyword">from</span> <span className="text-violet-300">libreyolo.models.yolov11</span> <span className="token-keyword">import</span> <span className="text-emerald-400">YOLOv11</span>{'\n\n'}
+                  <span className="token-keyword">class</span> <span className="text-emerald-400">YOLOv11Custom</span>(<span className="text-fuchsia-400">YOLOv11</span>):{'\n'}
+                  {'    '}<span className="token-keyword">def</span> <span className="token-function">__init__</span>(<span className="text-surface-300">self</span>):{'\n'}
+                  {'        '}<span className="token-function">super</span>().<span className="token-function">__init__</span>(){'\n'}
+                  {'        '}<span className="token-comment"># Swap out the backbone</span>{'\n'}
+                  {'        '}<span className="text-surface-300">self</span>.<span className="text-surface-300">backbone</span> <span className="text-violet-400">=</span> <span className="text-emerald-400">MyCustomBackbone</span>(){'\n\n'}
+                  {'    '}<span className="token-keyword">def</span> <span className="token-function">forward</span>(<span className="text-surface-300">self</span>, <span className="text-surface-300">x</span>):{'\n'}
+                  {'        '}<span className="text-surface-300">features</span> <span className="text-violet-400">=</span> <span className="text-surface-300">self</span>.<span className="text-surface-300">backbone</span>(<span className="text-surface-300">x</span>){'\n'}
+                  {'        '}<span className="token-keyword">return</span> <span className="text-surface-300">self</span>.<span className="token-function">head</span>(<span className="text-surface-300">self</span>.<span className="token-function">neck</span>(<span className="text-surface-300">features</span>)){'\n\n'}
+                  <span className="token-comment"># Train it:</span>{'\n'}
+                  <span className="text-surface-300">model</span> <span className="text-violet-400">=</span> <span className="text-emerald-400">YOLOv11Custom</span>(){'\n'}
+                  <span className="text-surface-300">model</span>.<span className="token-function">train</span>(<span className="text-surface-300">data</span><span className="text-violet-400">=</span><span className="token-string">"my_dataset.yaml"</span>)
+                </code>
+              </pre>
             </div>
-            
-            <CodeBlock code={customBackboneCode} filename="yolov11_custom.py" />
           </div>
         </motion.div>
       </div>
@@ -614,22 +501,15 @@ function CTASection() {
             </pre>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/docs"
-              className="btn-primary flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-xl text-white font-semibold"
-            >
-              View Documentation
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <Link
-              href="/models"
-              className="flex items-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-all"
-            >
-              <Download className="w-5 h-5 text-emerald-400" />
-              Get Models
-            </Link>
-          </div>
+          <a
+            href="https://docs.libreyolo.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-xl text-white font-semibold"
+          >
+            View Documentation
+            <ArrowRight className="w-5 h-5" />
+          </a>
         </motion.div>
       </div>
     </section>
@@ -642,7 +522,6 @@ export default function Science() {
       <HeroSection />
       <NoPaywallSection />
       <ExplainabilitySection />
-      <CodeStructureSection />
       <ModificationSection />
       <CTASection />
     </div>
