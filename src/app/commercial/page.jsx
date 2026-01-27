@@ -4,8 +4,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
   Scale, Shield, CheckCircle2, XCircle, AlertTriangle,
-  Building2, Lock, Unlock, ArrowRight,
-  Code2, Box, Server, Globe, Briefcase, HelpCircle
+  Lock, Unlock, ArrowRight, HelpCircle
 } from 'lucide-react'
 
 function HeroSection() {
@@ -84,89 +83,6 @@ function TLDRSection() {
                 </ul>
               </div>
             </div>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  )
-}
-
-function UseCasesSection() {
-  const useCases = [
-    {
-      icon: Building2,
-      title: 'Enterprise Software',
-      description: 'Build internal tools, analytics platforms, or enterprise products with object detection capabilities.',
-      allowed: true,
-    },
-    {
-      icon: Globe,
-      title: 'SaaS Applications',
-      description: 'Offer detection-as-a-service, image analysis APIs, or AI-powered features to your customers.',
-      allowed: true,
-    },
-    {
-      icon: Server,
-      title: 'On-Premise Deployment',
-      description: 'Deploy to customer infrastructure, air-gapped networks, or private clouds.',
-      allowed: true,
-    },
-    {
-      icon: Box,
-      title: 'Embedded Devices',
-      description: 'Ship in IoT devices, edge computing systems, cameras, or robotics platforms.',
-      allowed: true,
-    },
-    {
-      icon: Briefcase,
-      title: 'Consulting & Integration',
-      description: 'Build custom solutions for clients and include Libre-YOLO as part of your deliverables.',
-      allowed: true,
-    },
-    {
-      icon: Code2,
-      title: 'Proprietary Modifications',
-      description: 'Fork, modify, and extend the codebase without any obligation to share changes.',
-      allowed: true,
-    },
-  ]
-
-  return (
-    <section className="py-12">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <h2 className="text-2xl font-bold text-white mb-4">
-            Common Use Cases
-          </h2>
-          <p className="text-surface-400 mb-8">
-            All of these are explicitly permitted under the MIT license.
-          </p>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {useCases.map((useCase, index) => (
-              <motion.div
-                key={useCase.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-surface-900/50 border border-emerald-500/10 rounded-xl p-6"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="p-2 rounded-lg bg-emerald-500/10 flex-shrink-0">
-                    <useCase.icon className="w-5 h-5 text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-white font-semibold mb-1">{useCase.title}</h3>
-                    <p className="text-surface-400 text-sm">{useCase.description}</p>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
           </div>
         </motion.div>
       </div>
@@ -405,15 +321,13 @@ function CTASection() {
             No licensing calls. No legal reviews. Just code.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="https://docs.libreyolo.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/docs"
               className="btn-primary flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-libre-500 to-libre-600 rounded-xl text-white font-semibold"
             >
               Get Started
               <ArrowRight className="w-5 h-5" />
-            </a>
+            </Link>
           </div>
         </motion.div>
       </div>
@@ -426,7 +340,6 @@ export default function Commercial() {
     <div className="min-h-screen">
       <HeroSection />
       <TLDRSection />
-      <UseCasesSection />
       <WeightsSection />
       <ComparisonSection />
       <FAQSection />

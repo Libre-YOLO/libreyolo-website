@@ -46,9 +46,9 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-4">Resources</h4>
             <ul className="space-y-3">
               <li>
-                <a href="https://docs.libreyolo.com" target="_blank" rel="noopener noreferrer" className="text-surface-400 hover:text-libre-400 text-sm transition-colors">
+                <Link href="/docs" className="text-surface-400 hover:text-libre-400 text-sm transition-colors">
                   Documentation
-                </a>
+                </Link>
               </li>
               <li>
                 <Link href="/models" className="text-surface-400 hover:text-libre-400 text-sm transition-colors">

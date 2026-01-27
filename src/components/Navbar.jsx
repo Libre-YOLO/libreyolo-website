@@ -5,12 +5,13 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Github, ExternalLink } from 'lucide-react'
+import { Menu, X, Github } from 'lucide-react'
 
 const navLinks = [
   { name: 'Home', path: '/' },
   { name: 'Models', path: '/models' },
   { name: 'Datasets', path: '/datasets' },
+  { name: 'Docs', path: '/docs' },
   { name: 'Commercial', path: '/commercial' },
 ]
 
@@ -36,8 +37,8 @@ export default function Navbar() {
         animate={{ y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          isScrolled 
-            ? 'bg-surface-950/80 backdrop-blur-xl border-b border-white/5' 
+          isScrolled
+            ? 'bg-surface-950/80 backdrop-blur-xl border-b border-white/5'
             : 'bg-transparent'
         }`}
       >
@@ -46,11 +47,11 @@ export default function Navbar() {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative w-8 h-8">
-                <Image 
-                  src="/logo.png" 
-                  alt="Libre-YOLO" 
+                <Image
+                  src="/logo.png"
+                  alt="Libre-YOLO"
                   fill
-                  className="object-contain invert transition-all duration-300 group-hover:opacity-80 relative z-10" 
+                  className="object-contain invert transition-all duration-300 group-hover:opacity-80 relative z-10"
                   sizes="32px"
                 />
                 <div className="absolute inset-0 blur-lg bg-libre-400/30 group-hover:bg-libre-300/40 transition-all duration-300" />
@@ -76,15 +77,6 @@ export default function Navbar() {
                   {link.name}
                 </Link>
               ))}
-              <a
-                href="https://docs.libreyolo.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-surface-200 hover:text-white hover:bg-white/5"
-              >
-                Docs
-                <ExternalLink className="w-3 h-3" />
-              </a>
             </div>
 
             {/* Right Side */}
@@ -141,15 +133,6 @@ export default function Navbar() {
                 </Link>
               ))}
               <a
-                href="https://docs.libreyolo.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-4 py-3 rounded-lg text-sm font-medium text-surface-200 hover:text-white hover:bg-white/5"
-              >
-                Docs
-                <ExternalLink className="w-3 h-3" />
-              </a>
-              <a
                 href="https://github.com/Libre-YOLO/libreyolo"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -171,4 +154,3 @@ export default function Navbar() {
     </>
   )
 }
-

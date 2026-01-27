@@ -1,10 +1,12 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
-  Unlock, Layers, Eye, Zap, ArrowRight,
-  Code2, Box, Cpu, Scale
+  Unlock, Layers, ArrowRight,
+  Code2, Scale, Copy, Check, CheckCircle2,
+  Upload, RefreshCw
 } from 'lucide-react'
 
 const fadeInUp = {
@@ -21,7 +23,20 @@ const stagger = {
   }
 }
 
+const codeSnippet = `from libreyolo import LIBREYOLO, SAMPLE_IMAGE
+
+model = LIBREYOLO("libreyoloXs.pt")
+results = model(SAMPLE_IMAGE, save=True)`
+
 function HeroSection() {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(codeSnippet)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Effects */}
@@ -74,15 +89,13 @@ function HeroSection() {
             variants={fadeInUp}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <a
-              href="https://docs.libreyolo.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/docs"
               className="btn-primary group flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-libre-500 to-libre-600 rounded-xl text-white font-semibold text-lg"
             >
               Get Started
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </a>
+            </Link>
             <a
               href="https://github.com/Libre-YOLO/libreyolo"
               target="_blank"
@@ -106,20 +119,43 @@ function HeroSection() {
                 <div className="absolute -inset-1 bg-gradient-to-r from-libre-500/50 via-emerald-500/50 to-libre-500/50 rounded-2xl lg:rounded-r-none blur-xl opacity-30" />
 
                 <div className="relative code-block rounded-2xl lg:rounded-r-none overflow-hidden h-full">
-                  <div className="flex items-center gap-2 px-4 py-3 bg-surface-900/50 border-b border-white/5">
-                    <div className="flex gap-2">
-                      <span className="w-3 h-3 rounded-full bg-red-500/80" />
-                      <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-                      <span className="w-3 h-3 rounded-full bg-green-500/80" />
+                  <div className="flex items-center justify-between px-4 py-3 bg-surface-900/50 border-b border-white/5">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-2">
+                        <span className="w-3 h-3 rounded-full bg-red-500/80" />
+                        <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                        <span className="w-3 h-3 rounded-full bg-green-500/80" />
+                      </div>
+                      <span className="ml-4 text-surface-500 text-sm font-mono">quickstart.py</span>
                     </div>
-                    <span className="ml-4 text-surface-500 text-sm font-mono">quickstart.py</span>
+                    <button
+                      onClick={handleCopy}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-surface-400 hover:text-white hover:bg-white/10 transition-all"
+                      aria-label="Copy code"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied ? 'Copied!' : 'Copy'}
+                    </button>
                   </div>
-                  <pre className="p-6 text-left overflow-x-auto">
+                  <pre className="p-6 text-left">
                     <code className="font-mono text-sm lg:text-base">
-                      <span className="token-keyword">from</span> <span className="text-libre-300">libreyolo</span> <span className="token-keyword">import</span> <span className="text-emerald-400">LIBREYOLOX</span>{'\n\n'}
-                      <span className="token-comment"># Weights auto-download from HuggingFace</span>{'\n'}
-                      <span className="text-surface-300">model</span> <span className="text-libre-400">=</span> <span className="text-emerald-400">LIBREYOLOX</span>(<span className="text-surface-300">model_path</span><span className="text-libre-400">=</span><span className="token-string">"libreyolox_s.pt"</span>){'\n'}
-                      <span className="text-surface-300">results</span> <span className="text-libre-400">=</span> <span className="text-surface-300">model</span>(<span className="text-surface-300">image</span><span className="text-libre-400">=</span><span className="token-string">"parkour.jpg"</span>, <span className="text-surface-300">save</span><span className="text-libre-400">=</span><span className="text-emerald-400">True</span>)
+                      <table className="border-collapse">
+                        <tbody>
+                          <tr>
+                            <td className="pr-4 text-right select-none text-surface-600 align-top w-6">1</td>
+                            <td><span className="token-keyword">from</span> <span className="text-libre-300">libreyolo</span> <span className="token-keyword">import</span> <span className="text-emerald-400">LIBREYOLO</span>, <span className="text-emerald-400">SAMPLE_IMAGE</span></td>
+                          </tr>
+                          <tr><td className="pr-4 text-right select-none text-surface-600 w-6">2</td><td></td></tr>
+                          <tr>
+                            <td className="pr-4 text-right select-none text-surface-600 align-top w-6">3</td>
+                            <td><span className="text-surface-300">model</span> <span className="text-libre-400">=</span> <span className="text-emerald-400">LIBREYOLO</span>(<span className="token-string">&quot;libreyoloXs.pt&quot;</span>)</td>
+                          </tr>
+                          <tr>
+                            <td className="pr-4 text-right select-none text-surface-600 align-top w-6">4</td>
+                            <td><span className="text-surface-300">results</span> <span className="text-libre-400">=</span> <span className="text-surface-300">model</span>(<span className="text-emerald-400">SAMPLE_IMAGE</span>, <span className="text-surface-300">save</span><span className="text-libre-400">=</span><span className="text-emerald-400">True</span>)</td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </code>
                   </pre>
                 </div>
@@ -166,39 +202,39 @@ function HeroSection() {
 function FeaturesSection() {
   const features = [
     {
-      icon: Code2,
-      title: 'Clean Room Implementation',
-      description: 'Zero lineage from restrictive repositories. A fresh codebase built from research papers, not copied code.',
-      color: 'libre'
-    },
-    {
-      icon: Layers,
-      title: 'Unified Architecture',
-      description: 'Run v8, v11, and future architectures with a single, stable API. One engine, all models.',
+      icon: Unlock,
+      title: 'Truly MIT',
+      description: 'No AGPL anywhere in the dependency chain. Use it in closed-source products, SaaS, embedded systems — zero licensing risk.',
       color: 'emerald'
     },
     {
-      icon: Eye,
-      title: 'Deep Inspection',
-      description: "Debug your model's 'brain' with native feature map visualization. See what the network sees.",
+      icon: Layers,
+      title: 'One API, three architectures',
+      description: 'YOLOX, YOLOv9, and RF-DETR behind a single LIBREYOLO() call. Architecture, size, and class count auto-detected from weights.',
+      color: 'libre'
+    },
+    {
+      icon: RefreshCw,
+      title: 'Batteries included',
+      description: 'Any input format — paths, URLs, PIL, NumPy, OpenCV, tensors, bytes. Tiled inference for large images. Auto-download weights from HuggingFace.',
       color: 'cyan'
     },
     {
-      icon: Zap,
-      title: 'Production Ready',
-      description: 'Optimized inference paths, ONNX export, and deployment guides for edge and cloud.',
+      icon: Code2,
+      title: 'Train',
+      description: 'Fine-tune on custom YOLO or COCO datasets with built-in augmentation, mixed precision, and early stopping. Resume from any checkpoint.',
       color: 'amber'
     },
     {
-      icon: Box,
-      title: 'Native Python',
-      description: 'No complex dependencies or build steps. pip install and go. Works where you work.',
+      icon: CheckCircle2,
+      title: 'Validate',
+      description: 'COCO-standard evaluation with mAP50, mAP50-95, precision, and recall. Per-class metrics and confusion matrix out of the box.',
       color: 'violet'
     },
     {
-      icon: Cpu,
-      title: 'Hardware Agnostic',
-      description: 'CPU, CUDA, MPS (Apple Silicon), and more. Train and deploy anywhere.',
+      icon: Upload,
+      title: 'Export & deploy',
+      description: 'One-line ONNX and TorchScript export with embedded metadata. Run inference with ONNX Runtime — no PyTorch needed in production.',
       color: 'rose'
     }
   ]
@@ -224,10 +260,10 @@ function FeaturesSection() {
           className="text-center mb-16"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
-            Built for <span className="text-transparent bg-clip-text bg-gradient-to-r from-libre-400 to-emerald-400">Real Products</span>
+            Why <span className="text-transparent bg-clip-text bg-gradient-to-r from-libre-400 to-emerald-400">LibreYOLO</span>
           </h2>
           <p className="text-lg text-surface-400 max-w-2xl mx-auto">
-            A modern, clean implementation designed from the ground up for production deployments.
+            Everything you need for object detection, nothing you don&apos;t.
           </p>
         </motion.div>
 
@@ -282,15 +318,13 @@ function CTASection() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="https://docs.libreyolo.com"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/docs"
               className="btn-primary flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-libre-500 to-libre-600 rounded-xl text-white font-semibold"
             >
               Read the Docs
               <ArrowRight className="w-5 h-5" />
-            </a>
+            </Link>
             <Link
               href="/commercial"
               className="flex items-center gap-2 px-8 py-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-white font-medium transition-all"
