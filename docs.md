@@ -1,0 +1,1014 @@
+# LibreYOLO Documentation
+
+---
+
+# Introduction
+
+LibreYOLO is an MIT-licensed object detection library that provides a unified Python API across three architectures: **YOLOX**, **YOLOv9**, and **RF-DETR**. One interface for prediction, training, validation, and export — regardless of which model family you use.
+
+```python
+from libreyolo import LIBREYOLO
+
+model = LIBREYOLO("libreyoloXs.pt")
+results = model("image.jpg", conf=0.25, save=True)
+print(results.boxes.xyxy)
+```
+
+### Key features
+
+- Unified API across YOLOX, YOLOv9, and RF-DETR
+- Auto-detection of model architecture, size, and class count from weights
+- Tiled inference for large/high-resolution images
+- ONNX and TorchScript export with embedded metadata
+- ONNX Runtime inference backend
+- COCO-compatible validation with mAP metrics
+- Accepts any image format: file paths, URLs, PIL, NumPy, PyTorch tensors, raw bytes
+
+---
+
+# Installation
+
+### Requirements
+
+- Python 3.10+
+- PyTorch 1.7+
+
+### From PyPI
+
+```bash
+pip install libreyolo
+```
+
+### From source
+
+```bash
+git clone https://github.com/Libre-YOLO/libreyolo.git
+cd libreyolo
+pip install -e .
+```
+
+### Optional dependencies
+
+```bash
+# ONNX export and inference
+pip install libreyolo[onnx]
+# or: pip install onnx onnxsim onnxscript onnxruntime
+
+# RF-DETR support
+pip install libreyolo[rfdetr]
+# or: pip install rfdetr timm supervision
+
+# Weight conversion from Ultralytics
+pip install libreyolo[convert]
+```
+
+If using `uv`:
+
+```bash
+uv sync --extra onnx
+uv sync --extra rfdetr
+```
+
+---
+
+# Quickstart
+
+### Load a model and run inference
+
+```python
+from libreyolo import LIBREYOLO
+
+# Auto-detects architecture and size from the weights file
+model = LIBREYOLO("libreyoloXs.pt")
+
+# Run on a single image
+result = model("photo.jpg")
+
+print(f"Found {len(result)} objects")
+print(result.boxes.xyxy)   # bounding boxes (N, 4)
+print(result.boxes.conf)   # confidence scores (N,)
+print(result.boxes.cls)    # class IDs (N,)
+```
+
+### Save annotated output
+
+```python
+result = model("photo.jpg", save=True)
+# Saved to runs/detections/photo_LIBREYOLOX_s_<timestamp>.jpg
+```
+
+### Process a directory
+
+```python
+results = model("images/", save=True, batch=4)
+for r in results:
+    print(f"{r.path}: {len(r)} detections")
+```
+
+---
+
+# Available Models
+
+### YOLOX
+
+| Size | Code | Input size | Use case |
+|------|------|-----------|----------|
+| Nano | `"nano"` | 416 | Edge devices, mobile |
+| Tiny | `"tiny"` | 416 | Edge devices, faster |
+| Small | `"s"` | 640 | Balanced speed/accuracy |
+| Medium | `"m"` | 640 | Higher accuracy |
+| Large | `"l"` | 640 | High accuracy |
+| XLarge | `"x"` | 640 | Maximum accuracy |
+
+```python
+from libreyolo import LIBREYOLOX
+model = LIBREYOLOX("libreyoloXs.pt", size="s")
+```
+
+### YOLOv9
+
+| Size | Code | Input size | Use case |
+|------|------|-----------|----------|
+| Tiny | `"t"` | 640 | Fast inference |
+| Small | `"s"` | 640 | Balanced |
+| Medium | `"m"` | 640 | Higher accuracy |
+| Compact | `"c"` | 640 | Best accuracy |
+
+```python
+from libreyolo import LIBREYOLO9
+model = LIBREYOLO9("libreyolo9c.pt", size="c")
+```
+
+### RF-DETR
+
+| Size | Code | Input size | Use case |
+|------|------|-----------|----------|
+| Nano | `"n"` | varies | Edge |
+| Small | `"s"` | varies | Balanced |
+| Base | `"b"` | varies | Default |
+| Medium | `"m"` | varies | Higher accuracy |
+| Large | `"l"` | varies | Maximum accuracy |
+
+```python
+from libreyolo import LIBREYOLORFDETR
+model = LIBREYOLORFDETR(size="b")
+```
+
+### Factory function (recommended)
+
+The `LIBREYOLO()` factory auto-detects everything from the weights file:
+
+```python
+from libreyolo import LIBREYOLO
+
+# Auto-detects: YOLOX, size=s, 80 classes
+model = LIBREYOLO("libreyoloXs.pt")
+
+# Auto-detects: YOLOv9, size=c, 80 classes
+model = LIBREYOLO("libreyolo9c.pt")
+
+# Auto-detects: RF-DETR
+model = LIBREYOLO("librerfdetrbase.pth")
+
+# ONNX models work too
+model = LIBREYOLO("model.onnx")
+```
+
+If weights are not found locally, LibreYOLO attempts to download them from Hugging Face automatically.
+
+---
+
+# Prediction
+
+### Basic prediction
+
+```python
+result = model("image.jpg")
+```
+
+### All prediction parameters
+
+```python
+result = model(
+    "image.jpg",
+    conf=0.25,            # confidence threshold (default: 0.25)
+    iou=0.45,             # NMS IoU threshold (default: 0.45)
+    imgsz=640,            # input size override (default: model's native)
+    classes=[0, 2, 5],    # filter to specific class IDs (default: all)
+    max_det=300,          # max detections per image (default: 300)
+    save=True,            # save annotated image (default: False)
+    output_path="out/",   # where to save (default: runs/detections/)
+    color_format="rgb",   # input format hint for numpy arrays
+    output_file_format="png",  # output format: "jpg", "png", "webp"
+)
+```
+
+`model.predict(...)` is an alias for `model(...)`.
+
+### Supported input formats
+
+LibreYOLO accepts images in any of these formats:
+
+```python
+# File path (string or pathlib.Path)
+result = model("photo.jpg")
+result = model(Path("photo.jpg"))
+
+# URL
+result = model("https://example.com/image.jpg")
+
+# PIL Image
+from PIL import Image
+img = Image.open("photo.jpg")
+result = model(img)
+
+# NumPy array (HWC or CHW, RGB or BGR, uint8 or float32)
+import numpy as np
+arr = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
+result = model(arr)
+
+# OpenCV (BGR) — specify color_format
+import cv2
+frame = cv2.imread("photo.jpg")
+result = model(frame, color_format="bgr")
+
+# PyTorch tensor (CHW or NCHW)
+import torch
+tensor = torch.randn(3, 640, 640)
+result = model(tensor)
+
+# Raw bytes
+with open("photo.jpg", "rb") as f:
+    result = model(f.read())
+
+# Directory of images
+results = model("images/", batch=4)
+```
+
+### Working with results
+
+Every prediction returns a `Results` object (or a list of them for directories):
+
+```python
+result = model("image.jpg")
+
+# Number of detections
+len(result)  # e.g., 5
+
+# Bounding boxes in xyxy format (x1, y1, x2, y2)
+result.boxes.xyxy        # tensor of shape (N, 4)
+
+# Bounding boxes in xywh format (center_x, center_y, width, height)
+result.boxes.xywh        # tensor of shape (N, 4)
+
+# Confidence scores
+result.boxes.conf        # tensor of shape (N,)
+
+# Class IDs
+result.boxes.cls         # tensor of shape (N,)
+
+# Combined data: [x1, y1, x2, y2, conf, cls]
+result.boxes.data        # tensor of shape (N, 6)
+
+# Metadata
+result.orig_shape        # (height, width) of original image
+result.path              # source file path (or None)
+result.names             # {0: "person", 1: "bicycle", ...}
+
+# Move to CPU / convert to numpy
+result_cpu = result.cpu()
+boxes_np = result.boxes.numpy()
+```
+
+### Class filtering
+
+Filter detections to specific class IDs:
+
+```python
+# Only detect people (class 0) and cars (class 2)
+result = model("image.jpg", classes=[0, 2])
+```
+
+---
+
+# Tiled Inference
+
+For images much larger than the model's input size (e.g., satellite imagery, drone footage), tiled inference splits the image into overlapping tiles, runs detection on each, and merges results.
+
+```python
+result = model(
+    "large_aerial_image.jpg",
+    tiling=True,
+    overlap_ratio=0.2,   # 20% overlap between tiles (default)
+    save=True,
+)
+
+# Extra metadata on tiled results
+result.tiled           # True
+result.num_tiles       # number of tiles used
+```
+
+When `save=True` with tiling, LibreYOLO saves:
+- `final_image.jpg` — full image with all merged detections drawn
+- `grid_visualization.jpg` — image showing tile grid overlay
+- `tiles/` — individual tile crops
+- `metadata.json` — tiling parameters and detection counts
+
+If the image is already smaller than the model's input size, tiling is skipped automatically.
+
+---
+
+# Training
+
+### YOLOX training
+
+```python
+from libreyolo import LIBREYOLOX
+
+model = LIBREYOLOX(size="s")
+
+results = model.train(
+    data="coco128.yaml",     # path to data.yaml (required)
+
+    # Training parameters
+    epochs=100,
+    batch=16,
+    imgsz=640,
+
+    # Optimizer
+    lr0=0.01,                # initial learning rate
+    optimizer="SGD",         # "SGD", "Adam", "AdamW"
+
+    # System
+    device="0",              # GPU device ("", "cpu", "cuda", "0", "0,1")
+    workers=8,
+    seed=42,
+
+    # Output
+    project="runs/train",
+    name="exp",
+    exist_ok=False,
+
+    # Training features
+    amp=True,                # automatic mixed precision
+    patience=50,             # early stopping patience
+    resume=False,            # resume from loaded checkpoint
+)
+
+print(f"Best mAP50-95: {results['best_mAP50_95']:.3f}")
+print(f"Best checkpoint: {results['best_checkpoint']}")
+```
+
+After training, the model instance is automatically updated with the best weights.
+
+#### Training results dict
+
+```python
+{
+    "final_loss": 2.31,
+    "best_mAP50": 0.682,
+    "best_mAP50_95": 0.451,
+    "best_epoch": 87,
+    "save_dir": "runs/train/exp",
+    "best_checkpoint": "runs/train/exp/weights/best.pt",
+    "last_checkpoint": "runs/train/exp/weights/last.pt",
+}
+```
+
+#### Resuming training
+
+```python
+model = LIBREYOLOX("runs/train/exp/weights/last.pt", size="s")
+results = model.train(data="coco128.yaml", resume=True)
+```
+
+#### Custom dataset YAML format
+
+```yaml
+# data.yaml
+path: /path/to/dataset
+train: images/train
+val: images/val
+test: images/test  # optional
+
+nc: 3
+names: ["cat", "dog", "bird"]
+```
+
+### RF-DETR training
+
+RF-DETR uses a different training API that wraps the original rfdetr implementation:
+
+```python
+from libreyolo import LIBREYOLORFDETR
+
+model = LIBREYOLORFDETR(size="b")
+
+results = model.train(
+    data="path/to/dataset",  # Roboflow/COCO format directory
+    epochs=100,
+    batch_size=4,
+    lr=1e-4,
+    output_dir="runs/train",
+)
+```
+
+RF-DETR datasets use COCO annotation format:
+
+```
+dataset/
+    train/
+        _annotations.coco.json
+        image1.jpg
+        image2.jpg
+    valid/
+        _annotations.coco.json
+        image1.jpg
+```
+
+---
+
+# Validation
+
+Run COCO-standard evaluation on a validation set:
+
+```python
+results = model.val(
+    data="coco128.yaml",   # dataset config
+    batch=16,
+    imgsz=640,
+    conf=0.001,            # low conf for mAP calculation
+    iou=0.6,               # NMS IoU threshold
+    split="val",           # "val" or "test"
+    save_json=False,       # save predictions as COCO JSON
+    plots=True,            # generate confusion matrix
+    verbose=True,          # print per-class metrics
+)
+
+print(f"mAP50:    {results['metrics/mAP50']:.3f}")
+print(f"mAP50-95: {results['metrics/mAP50-95']:.3f}")
+print(f"Precision: {results['metrics/precision']:.3f}")
+print(f"Recall:    {results['metrics/recall']:.3f}")
+```
+
+### Validation results dict
+
+```python
+{
+    "metrics/precision": 0.712,
+    "metrics/recall": 0.683,
+    "metrics/mAP50": 0.721,
+    "metrics/mAP50-95": 0.489,
+}
+```
+
+---
+
+# Export
+
+Export models to ONNX or TorchScript for deployment.
+
+### Quick export
+
+```python
+# ONNX (default)
+model.export()
+
+# TorchScript
+model.export(format="torchscript")
+```
+
+### All export parameters
+
+```python
+path = model.export(
+    format="onnx",            # "onnx" or "torchscript"
+    output_path="model.onnx", # output file (auto-generated if None)
+    imgsz=640,                # input resolution (default: model's native)
+    opset=13,                 # ONNX opset version (default: 13)
+    simplify=True,            # run onnxsim graph simplification
+    dynamic=True,             # enable dynamic batch/height/width axes
+    half=False,               # export in FP16
+    batch=1,                  # batch size for static graph
+    device="cpu",             # device to trace on
+)
+```
+
+### ONNX metadata
+
+Exported ONNX files include embedded metadata:
+
+| Key | Example value |
+|-----|--------------|
+| `libreyolo_version` | `"0.1.4"` |
+| `model_family` | `"LIBREYOLOX"` |
+| `model_size` | `"s"` |
+| `nb_classes` | `"80"` |
+| `names` | `'{"0": "person", "1": "bicycle", ...}'` |
+| `imgsz` | `"640"` |
+| `dynamic` | `"True"` |
+| `half` | `"False"` |
+
+This metadata is automatically read back when loading the model with `LIBREYOLOOnnx` (see next section).
+
+### Using the Exporter class directly
+
+```python
+from libreyolo.export import Exporter
+
+exporter = Exporter(model)
+path = exporter("onnx", dynamic=True, simplify=True)
+```
+
+---
+
+# ONNX Inference
+
+Run inference using ONNX Runtime instead of PyTorch. Useful for deployment environments without PyTorch.
+
+```python
+from libreyolo import LIBREYOLOOnnx
+
+model = LIBREYOLOOnnx("model.onnx")
+
+result = model("image.jpg", conf=0.25, iou=0.45, save=True)
+print(result.boxes.xyxy)
+```
+
+### Auto-metadata
+
+If the ONNX file was exported by LibreYOLO, class names and class count are read automatically from the embedded metadata:
+
+```python
+# Export with metadata
+model.export(format="onnx", output_path="model.onnx")
+
+# Load — names and nb_classes auto-populated
+onnx_model = LIBREYOLOOnnx("model.onnx")
+print(onnx_model.names)       # {0: "person", 1: "bicycle", ...}
+print(onnx_model.nb_classes)  # 80
+```
+
+For ONNX files without metadata (e.g., exported by other tools), specify `nb_classes` manually:
+
+```python
+model = LIBREYOLOOnnx("external_model.onnx", nb_classes=20)
+```
+
+### Device selection
+
+```python
+# Auto-detect (CUDA if available, else CPU)
+model = LIBREYOLOOnnx("model.onnx", device="auto")
+
+# Force CPU
+model = LIBREYOLOOnnx("model.onnx", device="cpu")
+
+# Force CUDA
+model = LIBREYOLOOnnx("model.onnx", device="cuda")
+```
+
+### Prediction parameters
+
+`LIBREYOLOOnnx` supports the same prediction API:
+
+```python
+result = model(
+    "image.jpg",
+    conf=0.25,
+    iou=0.45,
+    imgsz=640,
+    classes=[0, 2],
+    max_det=300,
+    save=True,
+    output_path="output/",
+    color_format="rgb",
+)
+```
+
+---
+
+# API Reference
+
+## LIBREYOLO (factory)
+
+```python
+LIBREYOLO(
+    model_path: str,
+    size: str = None,           # auto-detected from weights
+    reg_max: int = 16,          # YOLOv9 only
+    nb_classes: int = None,     # auto-detected from weights
+    device: str = "auto",
+) -> LIBREYOLOX | LIBREYOLO9 | LIBREYOLORFDETR | LIBREYOLOOnnx
+```
+
+Auto-detects model architecture, size, and class count from the weights file. Returns the appropriate model class. Also handles `.onnx` files.
+
+Downloads weights from Hugging Face if not found locally.
+
+## LIBREYOLOX
+
+```python
+LIBREYOLOX(
+    model_path=None,            # str, dict, or None
+    size: str = "s",            # "nano", "tiny", "s", "m", "l", "x"
+    nb_classes: int = 80,
+    device: str = "auto",
+)
+```
+
+Pass `model_path=None` to create a fresh (randomly initialized) model for training.
+
+## LIBREYOLO9
+
+```python
+LIBREYOLO9(
+    model_path,                 # str or dict (required)
+    size: str,                  # "t", "s", "m", "c" (required)
+    reg_max: int = 16,
+    nb_classes: int = 80,
+    device: str = "auto",
+)
+```
+
+## LIBREYOLORFDETR
+
+```python
+LIBREYOLORFDETR(
+    model_path: str = None,     # None = use default pretrained
+    size: str = "b",            # "n", "s", "b", "m", "l"
+    nb_classes: int = 80,
+    device: str = "auto",
+)
+```
+
+## Prediction (all models)
+
+```python
+model(
+    source,                     # image input (see supported formats)
+    *,
+    conf: float = 0.25,
+    iou: float = 0.45,
+    imgsz: int = None,
+    classes: list[int] = None,
+    max_det: int = 300,
+    save: bool = False,
+    batch: int = 1,
+    output_path: str = None,
+    color_format: str = "auto",
+    tiling: bool = False,
+    overlap_ratio: float = 0.2,
+    output_file_format: str = None,
+) -> Results | list[Results]
+```
+
+## Results
+
+```python
+result = Results(
+    boxes: Boxes,
+    orig_shape: tuple[int, int],  # (height, width)
+    path: str | None,
+    names: dict[int, str],
+)
+
+len(result)          # number of detections
+result.cpu()         # copy with tensors on CPU
+```
+
+## Boxes
+
+```python
+boxes = Boxes(boxes, conf, cls)
+
+boxes.xyxy           # (N, 4) tensor — x1, y1, x2, y2
+boxes.xywh           # (N, 4) tensor — cx, cy, w, h
+boxes.conf           # (N,) tensor — confidence scores
+boxes.cls            # (N,) tensor — class IDs
+boxes.data           # (N, 6) tensor — [xyxy, conf, cls]
+
+len(boxes)           # number of boxes
+boxes.cpu()          # copy on CPU
+boxes.numpy()        # copy as numpy arrays
+```
+
+## model.export()
+
+```python
+model.export(
+    format: str = "onnx",       # "onnx" or "torchscript"
+    *,
+    output_path: str = None,
+    imgsz: int = None,
+    opset: int = 13,
+    simplify: bool = True,
+    dynamic: bool = True,
+    half: bool = False,
+    batch: int = 1,
+    device: str = None,
+) -> str                        # path to exported file
+```
+
+## Exporter
+
+```python
+from libreyolo.export import Exporter
+
+exporter = Exporter(model)
+path = exporter(
+    format,                     # same parameters as model.export()
+    **kwargs,
+)
+
+Exporter.FORMATS               # dict of supported formats
+# {"onnx": {"suffix": ".onnx", ...}, "torchscript": {"suffix": ".torchscript", ...}}
+```
+
+## model.val()
+
+```python
+model.val(
+    data: str = None,           # path to data.yaml
+    batch: int = 16,
+    imgsz: int = None,
+    conf: float = 0.001,
+    iou: float = 0.6,
+    device: str = None,
+    split: str = "val",
+    save_json: bool = False,
+    plots: bool = True,
+    verbose: bool = True,
+) -> dict
+```
+
+Returns:
+
+```python
+{
+    "metrics/precision": float,
+    "metrics/recall": float,
+    "metrics/mAP50": float,
+    "metrics/mAP50-95": float,
+}
+```
+
+## model.train() (YOLOX)
+
+```python
+model.train(
+    data: str,                  # path to data.yaml (required)
+    *,
+    epochs: int = 100,
+    batch: int = 16,
+    imgsz: int = 640,
+    lr0: float = 0.01,
+    optimizer: str = "SGD",
+    device: str = "",
+    workers: int = 8,
+    seed: int = 0,
+    project: str = "runs/train",
+    name: str = "exp",
+    exist_ok: bool = False,
+    pretrained: bool = True,
+    resume: bool = False,
+    amp: bool = True,
+    patience: int = 50,
+) -> dict
+```
+
+Returns:
+
+```python
+{
+    "final_loss": float,
+    "best_mAP50": float,
+    "best_mAP50_95": float,
+    "best_epoch": int,
+    "save_dir": str,
+    "best_checkpoint": str,
+    "last_checkpoint": str,
+}
+```
+
+## model.train() (RF-DETR)
+
+```python
+model.train(
+    data: str,                  # path to dataset directory
+    epochs: int = 100,
+    batch_size: int = 4,
+    lr: float = 1e-4,
+    output_dir: str = "runs/train",
+    resume: str = None,
+) -> dict
+```
+
+## LIBREYOLOOnnx
+
+```python
+LIBREYOLOOnnx(
+    onnx_path: str,
+    nb_classes: int = 80,       # auto-read from metadata if available
+    device: str = "auto",
+)
+```
+
+Supports the same prediction API as PyTorch models (except tiling).
+
+## ValidationConfig
+
+```python
+from libreyolo import ValidationConfig
+
+config = ValidationConfig(
+    data="coco128.yaml",
+    batch_size=16,
+    imgsz=640,
+    conf_thres=0.001,
+    iou_thres=0.6,
+    split="val",
+    device="auto",
+    save_json=False,
+    plots=True,
+    verbose=True,
+    half=False,
+)
+
+# Load/save YAML
+config = ValidationConfig.from_yaml("config.yaml")
+config.to_yaml("config.yaml")
+```
+
+---
+
+# Architecture Guide
+
+This section is for contributors who want to understand the codebase internals.
+
+### Base class design
+
+All model families inherit from `LibreYOLOBase` (in `libreyolo/common/base_model.py`). Subclasses implement these abstract methods:
+
+| Method | Purpose |
+|--------|---------|
+| `_init_model()` | Build and return the `nn.Module` |
+| `_get_valid_sizes()` | Return list of valid size codes |
+| `_get_model_name()` | Return model name string |
+| `_get_input_size()` | Return default input resolution |
+| `_preprocess()` | Image to tensor conversion |
+| `_forward()` | Model forward pass |
+| `_postprocess()` | Raw output to detection dicts |
+| `_get_available_layers()` | Map of named layers |
+
+The base class provides the shared pipeline: `__call__` / `predict`, `export`, `val`, tiled inference, results wrapping, and saving.
+
+### Package structure
+
+```
+libreyolo/
+    __init__.py          # Public API exports
+    factory.py           # LIBREYOLO() auto-detection factory
+    common/
+        base_model.py    # LibreYOLOBase abstract class
+        onnx.py          # LIBREYOLOOnnx runtime backend
+        results.py       # Results and Boxes classes
+        image_loader.py  # Unified image loading
+        utils.py         # NMS, drawing, preprocessing
+    export/
+        exporter.py      # Unified Exporter class
+    yolox/
+        model.py         # LIBREYOLOX
+        nn.py            # YOLOX network architecture
+        utils.py         # YOLOX-specific pre/postprocessing
+    v9/
+        model.py         # LIBREYOLO9
+        nn.py            # YOLOv9 network architecture
+        utils.py         # v9-specific pre/postprocessing
+    rfdetr/
+        model.py         # LIBREYOLORFDETR
+        nn.py            # RF-DETR network + configs
+        utils.py         # RF-DETR postprocessing
+        train.py         # RF-DETR training wrapper
+    training/
+        config.py        # YOLOXTrainConfig
+        trainer.py       # YOLOXTrainer
+        dataset.py       # Training dataset
+        augment.py       # Mosaic, mixup, etc.
+        loss.py          # YOLOX loss functions
+        scheduler.py     # LR schedulers
+        ema.py           # Exponential moving average
+    validation/
+        config.py        # ValidationConfig
+        detection_validator.py  # DetectionValidator
+        metrics.py       # DetMetrics, mAP computation
+        base.py          # BaseValidator
+        preprocessors.py # Per-model val preprocessing
+    data/
+        utils.py         # Dataset loading, YAML parsing
+        yolo_coco_api.py # YOLO-to-COCO annotation bridge
+    cfg/
+        datasets/        # Built-in dataset YAML configs
+```
+
+### Adding a new model family
+
+1. Create `libreyolo/newmodel/model.py` with a class inheriting `LibreYOLOBase`
+2. Implement all abstract methods
+3. Create `libreyolo/newmodel/nn.py` with the actual network architecture
+4. Add detection logic to `factory.py` for auto-detection from weights
+5. Export the class from `libreyolo/__init__.py`
+6. (Optional) Override `_get_val_preprocessor()` if the model needs non-standard validation preprocessing
+
+### Export architecture
+
+The `Exporter` class (in `libreyolo/export/exporter.py`) is format-agnostic. It uses a `FORMATS` dict for dispatch:
+
+```python
+FORMATS = {
+    "onnx":        {"suffix": ".onnx",       "method": "_export_onnx"},
+    "torchscript": {"suffix": ".torchscript", "method": "_export_torchscript"},
+}
+```
+
+To add a new export format, add an entry to `FORMATS` and implement the corresponding `_export_<name>` method.
+
+---
+
+# Dataset Format
+
+LibreYOLO uses YOLO-format datasets configured via YAML files.
+
+### data.yaml structure
+
+```yaml
+path: /absolute/path/to/dataset   # dataset root
+train: images/train               # relative to path
+val: images/val                   # relative to path
+test: images/test                 # optional
+
+nc: 80                            # number of classes
+names: [                          # class names
+  "person", "bicycle", "car", "motorcycle", "airplane",
+  "bus", "train", "truck", "boat", "traffic light",
+  # ...
+]
+```
+
+### Directory layout
+
+```
+dataset/
+    images/
+        train/
+            img001.jpg
+            img002.jpg
+        val/
+            img003.jpg
+    labels/
+        train/
+            img001.txt
+            img002.txt
+        val/
+            img003.txt
+```
+
+### Label format
+
+One text file per image. Each line is one object:
+
+```
+<class_id> <center_x> <center_y> <width> <height>
+```
+
+All coordinates are normalized to [0, 1] relative to image dimensions.
+
+Example (`img001.txt`):
+```
+0 0.5 0.4 0.3 0.6
+2 0.1 0.2 0.05 0.1
+```
+
+### Built-in datasets
+
+LibreYOLO includes configs for common datasets that auto-download:
+
+```python
+# These download automatically on first use
+results = model.val(data="coco8.yaml")
+results = model.train(data="coco128.yaml", epochs=10)
+```
+
+### RF-DETR dataset format
+
+RF-DETR uses COCO-format annotations (JSON) instead of YOLO text labels:
+
+```
+dataset/
+    train/
+        _annotations.coco.json
+        image1.jpg
+    valid/
+        _annotations.coco.json
+        image1.jpg
+```
