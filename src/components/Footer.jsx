@@ -56,8 +56,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/science" className="text-surface-400 hover:text-libre-400 text-sm transition-colors">
-                  Research & Science
+                <Link href="/datasets" className="text-surface-400 hover:text-libre-400 text-sm transition-colors">
+                  Dataset Zoo
                 </Link>
               </li>
               <li>

@@ -10,7 +10,7 @@ import { Menu, X, Github, ExternalLink } from 'lucide-react'
 const navLinks = [
   { name: 'Home', path: '/' },
   { name: 'Models', path: '/models' },
-  { name: 'Science', path: '/science' },
+  { name: 'Datasets', path: '/datasets' },
   { name: 'Commercial', path: '/commercial' },
 ]
 
