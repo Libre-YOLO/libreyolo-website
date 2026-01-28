@@ -5,14 +5,14 @@ import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Github } from 'lucide-react'
+import { Menu, X, Github, BookOpen } from 'lucide-react'
 
 const navLinks = [
   { name: 'Home', path: '/' },
   { name: 'Models', path: '/models' },
   { name: 'Datasets', path: '/datasets' },
-  { name: 'Docs', path: '/docs' },
   { name: 'Commercial', path: '/commercial' },
+  { name: 'Docs', path: '/docs', icon: BookOpen },
 ]
 
 export default function Navbar() {
@@ -68,12 +68,13 @@ export default function Navbar() {
                 <Link
                   key={link.path}
                   href={link.path}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
                     pathname === link.path
                       ? 'text-libre-400 bg-libre-400/10'
                       : 'text-surface-200 hover:text-white hover:bg-white/5'
                   }`}
                 >
+                  {link.icon && <link.icon className="w-4 h-4" />}
                   {link.name}
                 </Link>
               ))}
@@ -123,12 +124,13 @@ export default function Navbar() {
                 <Link
                   key={link.path}
                   href={link.path}
-                  className={`block px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                     pathname === link.path
                       ? 'text-libre-400 bg-libre-400/10'
                       : 'text-surface-200 hover:text-white hover:bg-white/5'
                   }`}
                 >
+                  {link.icon && <link.icon className="w-4 h-4" />}
                   {link.name}
                 </Link>
               ))}

@@ -228,13 +228,13 @@ function FeaturesSection() {
     {
       icon: CheckCircle2,
       title: 'Validate',
-      description: 'COCO-standard evaluation with mAP50, mAP50-95, precision, and recall. Per-class metrics and confusion matrix out of the box.',
+      description: 'COCO-standard evaluation with mAP50, mAP50-95, precision, and recall on COCO or custom datasets. Per-class metrics and confusion matrix out of the box.',
       color: 'violet'
     },
     {
       icon: Upload,
       title: 'Export & deploy',
-      description: 'One-line ONNX and TorchScript export with embedded metadata. Run inference with ONNX Runtime — no PyTorch needed in production.',
+      description: 'One-line ONNX export with embedded metadata for easy deployment.',
       color: 'rose'
     }
   ]
