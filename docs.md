@@ -19,8 +19,8 @@ print(results.boxes.xyxy)
 - Unified API across YOLOX, YOLOv9, and RF-DETR
 - Auto-detection of model architecture, size, and class count from weights
 - Tiled inference for large/high-resolution images
-- ONNX and TorchScript export with embedded metadata
-- ONNX Runtime inference backend
+- ONNX, TorchScript, TensorRT, and OpenVINO export with embedded metadata
+- ONNX Runtime, TensorRT, and OpenVINO inference backends
 - COCO-compatible validation with mAP metrics
 - Accepts any image format: file paths, URLs, PIL, NumPy, PyTorch tensors, raw bytes
 
@@ -58,8 +58,11 @@ pip install libreyolo[onnx]
 pip install libreyolo[rfdetr]
 # or: pip install rfdetr timm supervision
 
-# Weight conversion from Ultralytics
-pip install libreyolo[convert]
+# TensorRT export and inference (NVIDIA GPU)
+pip install libreyolo[tensorrt]
+
+# OpenVINO export and inference (Intel CPU/GPU/VPU)
+pip install libreyolo[openvino]
 ```
 
 If using `uv`:
@@ -67,6 +70,7 @@ If using `uv`:
 ```bash
 uv sync --extra onnx
 uv sync --extra rfdetr
+uv sync --extra openvino
 ```
 
 ---
@@ -143,15 +147,14 @@ model = LIBREYOLO9("libreyolo9c.pt", size="c")
 
 | Size | Code | Input size | Use case |
 |------|------|-----------|----------|
-| Nano | `"n"` | varies | Edge |
-| Small | `"s"` | varies | Balanced |
-| Base | `"b"` | varies | Default |
-| Medium | `"m"` | varies | Higher accuracy |
-| Large | `"l"` | varies | Maximum accuracy |
+| Nano | `"n"` | 384 | Edge |
+| Small | `"s"` | 512 | Balanced |
+| Medium | `"m"` | 576 | Higher accuracy |
+| Large | `"l"` | 704 | Maximum accuracy |
 
 ```python
 from libreyolo import LIBREYOLORFDETR
-model = LIBREYOLORFDETR(size="b")
+model = LIBREYOLORFDETR(size="s")
 ```
 
 ### Factory function (recommended)
@@ -168,10 +171,16 @@ model = LIBREYOLO("libreyoloXs.pt")
 model = LIBREYOLO("libreyolo9c.pt")
 
 # Auto-detects: RF-DETR
-model = LIBREYOLO("librerfdetrbase.pth")
+model = LIBREYOLO("librerfdetrsmall.pth")
 
 # ONNX models work too
 model = LIBREYOLO("model.onnx")
+
+# TensorRT engines
+model = LIBREYOLO("model.engine")
+
+# OpenVINO models (directory with model.xml)
+model = LIBREYOLO("model_openvino/")
 ```
 
 If weights are not found locally, LibreYOLO attempts to download them from Hugging Face automatically.
@@ -277,7 +286,8 @@ result.names             # {0: "person", 1: "bicycle", ...}
 
 # Move to CPU / convert to numpy
 result_cpu = result.cpu()
-boxes_np = result.boxes.numpy()
+boxes_np = result.boxes.numpy()       # Boxes object backed by numpy arrays
+xyxy_np = result.boxes.xyxy.numpy()   # raw numpy array
 ```
 
 ### Class filtering
@@ -306,9 +316,12 @@ result = model(
 # Extra metadata on tiled results
 result.tiled           # True
 result.num_tiles       # number of tiles used
+result.saved_path      # directory containing saved results (when save=True)
+result.tiles_path      # path to tiles/ subdirectory
+result.grid_path       # path to grid visualization image
 ```
 
-When `save=True` with tiling, LibreYOLO saves:
+When `save=True` with tiling, LibreYOLO saves outputs in a timestamped directory (`runs/tiled_detections/<image>_<model>_<timestamp>/`):
 - `final_image.jpg` — full image with all merged detections drawn
 - `grid_visualization.jpg` — image showing tile grid overlay
 - `tiles/` — individual tile crops
@@ -331,7 +344,7 @@ results = model.train(
     data="coco128.yaml",     # path to data.yaml (required)
 
     # Training parameters
-    epochs=100,
+    epochs=300,
     batch=16,
     imgsz=640,
 
@@ -341,8 +354,8 @@ results = model.train(
 
     # System
     device="0",              # GPU device ("", "cpu", "cuda", "0", "0,1")
-    workers=8,
-    seed=42,
+    workers=4,
+    seed=0,
 
     # Output
     project="runs/train",
@@ -402,7 +415,7 @@ RF-DETR uses a different training API that wraps the original rfdetr implementat
 ```python
 from libreyolo import LIBREYOLORFDETR
 
-model = LIBREYOLORFDETR(size="b")
+model = LIBREYOLORFDETR(size="s")
 
 results = model.train(
     data="path/to/dataset",  # Roboflow/COCO format directory
@@ -466,7 +479,7 @@ print(f"Recall:    {results['metrics/recall']:.3f}")
 
 # Export
 
-Export models to ONNX or TorchScript for deployment.
+Export models to ONNX, TorchScript, TensorRT, or OpenVINO for deployment.
 
 ### Quick export
 
@@ -476,22 +489,69 @@ model.export()
 
 # TorchScript
 model.export(format="torchscript")
+
+# TensorRT with FP16
+model.export(format="tensorrt", half=True)
+
+# OpenVINO
+model.export(format="openvino")
 ```
 
 ### All export parameters
 
 ```python
 path = model.export(
-    format="onnx",            # "onnx" or "torchscript"
+    format="onnx",            # "onnx", "torchscript", "tensorrt", or "openvino"
     output_path="model.onnx", # output file (auto-generated if None)
     imgsz=640,                # input resolution (default: model's native)
     opset=13,                 # ONNX opset version (default: 13)
     simplify=True,            # run onnxsim graph simplification
     dynamic=True,             # enable dynamic batch/height/width axes
     half=False,               # export in FP16
+    int8=False,               # export in INT8 (requires data for calibration)
     batch=1,                  # batch size for static graph
     device="cpu",             # device to trace on
+    # INT8 calibration
+    data=None,                # path to data.yaml for INT8 calibration
+    fraction=1.0,             # fraction of calibration dataset to use
+    # TensorRT specific
+    workspace=4.0,            # TensorRT workspace size in GiB
+    hardware_compatibility="none",  # "none", "ampere_plus", "same_compute_capability"
+    gpu_device=0,             # GPU device ID
+    trt_config=None,          # TensorRT config YAML file
+    verbose=False,            # enable verbose logging
 )
+```
+
+### TensorRT export
+
+```python
+# TensorRT with FP16 (fastest on NVIDIA GPU)
+path = model.export(format="tensorrt", half=True)
+
+# TensorRT with INT8 quantization (requires calibration dataset)
+path = model.export(
+    format="tensorrt",
+    int8=True,
+    data="coco8.yaml",
+    workspace=8.0,
+)
+
+# TensorRT with config file
+path = model.export(format="tensorrt", trt_config="tensorrt.yaml")
+```
+
+### OpenVINO export
+
+```python
+# OpenVINO IR format (Intel CPU/GPU/VPU)
+path = model.export(format="openvino")
+
+# OpenVINO with FP16 compression
+path = model.export(format="openvino", half=True)
+
+# OpenVINO with INT8 quantization
+path = model.export(format="openvino", int8=True, data="coco8.yaml")
 ```
 
 ### ONNX metadata
@@ -522,7 +582,11 @@ path = exporter("onnx", dynamic=True, simplify=True)
 
 ---
 
-# ONNX Inference
+# Inference Backends
+
+LibreYOLO supports three inference backends beyond PyTorch: ONNX Runtime, TensorRT, and OpenVINO. All provide the same prediction API.
+
+## ONNX Inference
 
 Run inference using ONNX Runtime instead of PyTorch. Useful for deployment environments without PyTorch.
 
@@ -586,6 +650,46 @@ result = model(
 )
 ```
 
+## TensorRT Inference
+
+Run inference using TensorRT for GPU-accelerated deployment on NVIDIA hardware:
+
+```python
+from libreyolo.common.tensorrt import LIBREYOLOTensorRT
+
+model = LIBREYOLOTensorRT("model.engine")
+
+result = model("image.jpg", conf=0.25, iou=0.45, save=True)
+print(result.boxes.xyxy)
+```
+
+Or load via the factory (auto-detects `.engine` files):
+
+```python
+from libreyolo import LIBREYOLO
+model = LIBREYOLO("model.engine")
+```
+
+## OpenVINO Inference
+
+Run inference using OpenVINO for Intel CPU/GPU/VPU acceleration:
+
+```python
+from libreyolo import LIBREYOLOOpenVINO
+
+model = LIBREYOLOOpenVINO("model_openvino/")
+
+result = model("image.jpg", conf=0.25, iou=0.45, save=True)
+print(result.boxes.xyxy)
+```
+
+Or load via the factory (auto-detects OpenVINO directories):
+
+```python
+from libreyolo import LIBREYOLO
+model = LIBREYOLO("model_openvino/")
+```
+
 ---
 
 # API Reference
@@ -599,10 +703,10 @@ LIBREYOLO(
     reg_max: int = 16,          # YOLOv9 only
     nb_classes: int = None,     # auto-detected from weights
     device: str = "auto",
-) -> LIBREYOLOX | LIBREYOLO9 | LIBREYOLORFDETR | LIBREYOLOOnnx
+) -> LIBREYOLOX | LIBREYOLO9 | LIBREYOLORFDETR | LIBREYOLOOnnx | LIBREYOLOTensorRT | LIBREYOLOOpenVINO
 ```
 
-Auto-detects model architecture, size, and class count from the weights file. Returns the appropriate model class. Also handles `.onnx` files.
+Auto-detects model architecture, size, and class count from the weights file. Returns the appropriate model class. Also handles `.onnx`, `.engine`, and OpenVINO directories.
 
 Downloads weights from Hugging Face if not found locally.
 
@@ -636,7 +740,7 @@ LIBREYOLO9(
 ```python
 LIBREYOLORFDETR(
     model_path: str = None,     # None = use default pretrained
-    size: str = "b",            # "n", "s", "b", "m", "l"
+    size: str = "s",            # "n", "s", "m", "l"
     nb_classes: int = 80,
     device: str = "auto",
 )
@@ -697,7 +801,7 @@ boxes.numpy()        # copy as numpy arrays
 
 ```python
 model.export(
-    format: str = "onnx",       # "onnx" or "torchscript"
+    format: str = "onnx",       # "onnx", "torchscript", "tensorrt", "openvino"
     *,
     output_path: str = None,
     imgsz: int = None,
@@ -705,8 +809,12 @@ model.export(
     simplify: bool = True,
     dynamic: bool = True,
     half: bool = False,
+    int8: bool = False,
     batch: int = 1,
     device: str = None,
+    data: str = None,           # calibration dataset for INT8
+    workspace: float = 4.0,     # TensorRT workspace (GiB)
+    verbose: bool = False,
 ) -> str                        # path to exported file
 ```
 
@@ -722,7 +830,10 @@ path = exporter(
 )
 
 Exporter.FORMATS               # dict of supported formats
-# {"onnx": {"suffix": ".onnx", ...}, "torchscript": {"suffix": ".torchscript", ...}}
+# {"onnx": {"suffix": ".onnx", "requires": None},
+#  "torchscript": {"suffix": ".torchscript", "requires": None},
+#  "tensorrt": {"suffix": ".engine", "requires": "onnx"},
+#  "openvino": {"suffix": "_openvino", "requires": "onnx"}}
 ```
 
 ## model.val()
@@ -759,13 +870,13 @@ Returns:
 model.train(
     data: str,                  # path to data.yaml (required)
     *,
-    epochs: int = 100,
+    epochs: int = 300,
     batch: int = 16,
     imgsz: int = 640,
     lr0: float = 0.01,
     optimizer: str = "SGD",
     device: str = "",
-    workers: int = 8,
+    workers: int = 4,
     seed: int = 0,
     project: str = "runs/train",
     name: str = "exp",
@@ -801,7 +912,17 @@ model.train(
     lr: float = 1e-4,
     output_dir: str = "runs/train",
     resume: str = None,
+    **kwargs,                   # additional args passed to rfdetr trainer
 ) -> dict
+```
+
+Returns:
+
+```python
+{
+    "output_dir": str,          # path to training output directory
+    "model": object,            # trained model instance
+}
 ```
 
 ## LIBREYOLOOnnx
@@ -823,15 +944,19 @@ from libreyolo import ValidationConfig
 
 config = ValidationConfig(
     data="coco128.yaml",
+    data_dir=None,              # direct dataset path (alternative to data)
     batch_size=16,
     imgsz=640,
     conf_thres=0.001,
     iou_thres=0.6,
+    max_det=300,
+    use_coco_eval=True,         # use pycocotools evaluation
     split="val",
     device="auto",
     save_json=False,
     plots=True,
     verbose=True,
+    num_workers=4,
     half=False,
 )
 
@@ -872,11 +997,19 @@ libreyolo/
     common/
         base_model.py    # LibreYOLOBase abstract class
         onnx.py          # LIBREYOLOOnnx runtime backend
+        tensorrt.py      # LIBREYOLOTensorRT runtime backend
+        openvino.py      # LIBREYOLOOpenVINO runtime backend
         results.py       # Results and Boxes classes
         image_loader.py  # Unified image loading
         utils.py         # NMS, drawing, preprocessing
     export/
         exporter.py      # Unified Exporter class
+        onnx.py          # ONNX export implementation
+        torchscript.py   # TorchScript export implementation
+        tensorrt.py      # TensorRT export implementation
+        openvino.py      # OpenVINO export implementation
+        calibration.py   # INT8 calibration utilities
+        config.py        # Export configuration
     yolox/
         model.py         # LIBREYOLOX
         nn.py            # YOLOX network architecture
@@ -885,6 +1018,9 @@ libreyolo/
         model.py         # LIBREYOLO9
         nn.py            # YOLOv9 network architecture
         utils.py         # v9-specific pre/postprocessing
+        config.py        # YOLOv9 configuration
+        loss.py          # YOLOv9 loss functions
+        trainer.py       # YOLOv9 training
     rfdetr/
         model.py         # LIBREYOLORFDETR
         nn.py            # RF-DETR network + configs
@@ -904,6 +1040,8 @@ libreyolo/
         metrics.py       # DetMetrics, mAP computation
         base.py          # BaseValidator
         preprocessors.py # Per-model val preprocessing
+        coco_evaluator.py # COCO evaluation helper
+        utils.py         # Validation utilities
     data/
         utils.py         # Dataset loading, YAML parsing
         yolo_coco_api.py # YOLO-to-COCO annotation bridge
@@ -926,12 +1064,14 @@ The `Exporter` class (in `libreyolo/export/exporter.py`) is format-agnostic. It 
 
 ```python
 FORMATS = {
-    "onnx":        {"suffix": ".onnx",       "method": "_export_onnx"},
-    "torchscript": {"suffix": ".torchscript", "method": "_export_torchscript"},
+    "onnx":        {"suffix": ".onnx",        "requires": None},
+    "torchscript": {"suffix": ".torchscript", "requires": None},
+    "tensorrt":    {"suffix": ".engine",      "requires": "onnx"},
+    "openvino":    {"suffix": "_openvino",    "requires": "onnx"},
 }
 ```
 
-To add a new export format, add an entry to `FORMATS` and implement the corresponding `_export_<name>` method.
+To add a new export format, add an entry to `FORMATS` with a `suffix` and optional `requires` dependency, then implement the corresponding export function.
 
 ---
 
@@ -995,9 +1135,14 @@ LibreYOLO includes configs for common datasets that auto-download:
 
 ```python
 # These download automatically on first use
-results = model.val(data="coco8.yaml")
-results = model.train(data="coco128.yaml", epochs=10)
+results = model.val(data="coco8.yaml")            # 8 images
+results = model.train(data="coco128.yaml", epochs=10)  # 128 images
+results = model.val(data="coco5000.yaml")          # 5000 images
+results = model.val(data="coco.yaml")              # full COCO dataset
+results = model.val(data="coco-val-only.yaml")     # validation split only
 ```
+
+All available configs are in `libreyolo/cfg/datasets/`.
 
 ### RF-DETR dataset format
 
