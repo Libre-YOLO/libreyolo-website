@@ -56,9 +56,10 @@ pip install libreyolo[onnx]
 
 # RF-DETR support
 pip install libreyolo[rfdetr]
-# or: pip install rfdetr timm supervision
+# or: pip install rfdetr transformers timm supervision
 
 # TensorRT export and inference (NVIDIA GPU)
+# Note: TensorRT itself requires manual installation (depends on CUDA version)
 pip install libreyolo[tensorrt]
 
 # OpenVINO export and inference (Intel CPU/GPU/VPU)
@@ -70,6 +71,7 @@ If using `uv`:
 ```bash
 uv sync --extra onnx
 uv sync --extra rfdetr
+uv sync --extra tensorrt
 uv sync --extra openvino
 ```
 
@@ -207,7 +209,7 @@ result = model(
     max_det=300,          # max detections per image (default: 300)
     save=True,            # save annotated image (default: False)
     output_path="out/",   # where to save (default: runs/detections/)
-    color_format="rgb",   # input format hint for numpy arrays
+    color_format="auto",  # "auto", "rgb", or "bgr" (default: "auto")
     output_file_format="png",  # output format: "jpg", "png", "webp"
 )
 ```
@@ -344,7 +346,7 @@ results = model.train(
     data="coco128.yaml",     # path to data.yaml (required)
 
     # Training parameters
-    epochs=300,
+    epochs=100,
     batch=16,
     imgsz=640,
 
@@ -354,7 +356,7 @@ results = model.train(
 
     # System
     device="0",              # GPU device ("", "cpu", "cuda", "0", "0,1")
-    workers=4,
+    workers=8,
     seed=0,
 
     # Output
@@ -408,6 +410,44 @@ nc: 3
 names: ["cat", "dog", "bird"]
 ```
 
+### YOLOv9 training
+
+YOLOv9 training uses the same API as YOLOX with slightly different defaults:
+
+```python
+from libreyolo import LIBREYOLO9
+
+model = LIBREYOLO9("libreyolo9c.pt", size="c")
+
+results = model.train(
+    data="coco128.yaml",     # path to data.yaml (required)
+
+    # Training parameters
+    epochs=300,              # default: 300 (vs 100 for YOLOX)
+    batch=16,
+    imgsz=640,
+
+    # Optimizer
+    lr0=0.01,
+    optimizer="SGD",
+
+    # System
+    device="0",
+    workers=8,
+    seed=0,
+
+    # Output
+    project="runs/train",
+    name="v9_exp",           # default: "v9_exp"
+    exist_ok=False,
+
+    # Training features
+    amp=True,
+    patience=50,
+    resume=False,
+)
+```
+
 ### RF-DETR training
 
 RF-DETR uses a different training API that wraps the original rfdetr implementation:
@@ -452,26 +492,34 @@ results = model.val(
     imgsz=640,
     conf=0.001,            # low conf for mAP calculation
     iou=0.6,               # NMS IoU threshold
-    split="val",           # "val" or "test"
+    split="val",           # "val", "test", or "train"
     save_json=False,       # save predictions as COCO JSON
-    plots=True,            # generate confusion matrix
+    plots=True,            # reserved for future visualization
     verbose=True,          # print per-class metrics
 )
 
 print(f"mAP50:    {results['metrics/mAP50']:.3f}")
 print(f"mAP50-95: {results['metrics/mAP50-95']:.3f}")
-print(f"Precision: {results['metrics/precision']:.3f}")
-print(f"Recall:    {results['metrics/recall']:.3f}")
 ```
 
 ### Validation results dict
 
+By default, LibreYOLO uses COCO evaluation (`use_coco_eval=True` in `ValidationConfig`):
+
 ```python
 {
-    "metrics/precision": 0.712,
-    "metrics/recall": 0.683,
-    "metrics/mAP50": 0.721,
-    "metrics/mAP50-95": 0.489,
+    "metrics/mAP50-95": 0.489,     # COCO primary metric (AP@[.5:.95])
+    "metrics/mAP50": 0.721,        # AP@0.5 (PASCAL VOC style)
+    "metrics/mAP75": 0.512,        # AP@0.75 (strict)
+    "metrics/mAP_small": 0.291,
+    "metrics/mAP_medium": 0.534,
+    "metrics/mAP_large": 0.632,
+    "metrics/AR1": 0.362,          # Average Recall (max 1 det)
+    "metrics/AR10": 0.571,
+    "metrics/AR100": 0.601,
+    "metrics/AR_small": 0.387,
+    "metrics/AR_medium": 0.655,
+    "metrics/AR_large": 0.741,
 }
 ```
 
@@ -506,11 +554,11 @@ path = model.export(
     imgsz=640,                # input resolution (default: model's native)
     opset=13,                 # ONNX opset version (default: 13)
     simplify=True,            # run onnxsim graph simplification
-    dynamic=True,             # enable dynamic batch/height/width axes
+    dynamic=True,             # enable dynamic batch axis
     half=False,               # export in FP16
     int8=False,               # export in INT8 (requires data for calibration)
     batch=1,                  # batch size for static graph
-    device="cpu",             # device to trace on
+    device=None,              # device to trace on (default: model's current device)
     # INT8 calibration
     data=None,                # path to data.yaml for INT8 calibration
     fraction=1.0,             # fraction of calibration dataset to use
@@ -813,7 +861,11 @@ model.export(
     batch: int = 1,
     device: str = None,
     data: str = None,           # calibration dataset for INT8
+    fraction: float = 1.0,      # fraction of calibration dataset
     workspace: float = 4.0,     # TensorRT workspace (GiB)
+    hardware_compatibility: str = "none",  # TensorRT HW compat level
+    gpu_device: int = 0,        # GPU device ID
+    trt_config: str = None,     # TensorRT config YAML file
     verbose: bool = False,
 ) -> str                        # path to exported file
 ```
@@ -853,14 +905,22 @@ model.val(
 ) -> dict
 ```
 
-Returns:
+Returns (with default COCO evaluation):
 
 ```python
 {
-    "metrics/precision": float,
-    "metrics/recall": float,
+    "metrics/mAP50-95": float,     # COCO primary metric
     "metrics/mAP50": float,
-    "metrics/mAP50-95": float,
+    "metrics/mAP75": float,
+    "metrics/mAP_small": float,
+    "metrics/mAP_medium": float,
+    "metrics/mAP_large": float,
+    "metrics/AR1": float,
+    "metrics/AR10": float,
+    "metrics/AR100": float,
+    "metrics/AR_small": float,
+    "metrics/AR_medium": float,
+    "metrics/AR_large": float,
 }
 ```
 
@@ -870,13 +930,13 @@ Returns:
 model.train(
     data: str,                  # path to data.yaml (required)
     *,
-    epochs: int = 300,
+    epochs: int = 100,
     batch: int = 16,
     imgsz: int = 640,
     lr0: float = 0.01,
     optimizer: str = "SGD",
     device: str = "",
-    workers: int = 4,
+    workers: int = 8,
     seed: int = 0,
     project: str = "runs/train",
     name: str = "exp",
@@ -901,6 +961,31 @@ Returns:
     "last_checkpoint": str,
 }
 ```
+
+## model.train() (YOLOv9)
+
+```python
+model.train(
+    data: str,                  # path to data.yaml (required)
+    *,
+    epochs: int = 300,
+    batch: int = 16,
+    imgsz: int = 640,
+    lr0: float = 0.01,
+    optimizer: str = "SGD",
+    device: str = "",
+    workers: int = 8,
+    seed: int = 0,
+    project: str = "runs/train",
+    name: str = "v9_exp",
+    exist_ok: bool = False,
+    resume: bool = False,
+    amp: bool = True,
+    patience: int = 50,
+) -> dict
+```
+
+Returns the same dict as YOLOX training.
 
 ## model.train() (RF-DETR)
 
